@@ -1,0 +1,516 @@
+﻿{% extends "base.html" %}
+{% block title %}{{ date }} - {{ COMPANY_NAME }}{% endblock %}
+{% block content %}
+
+<div class="date-nav">
+  <form method="get" style="display:flex; gap:8px; align-items:center;">
+    <input type="date" name="date" value="{{ date|date:'Y-m-d' }}" onchange="this.form.submit()">
+    {% if date != today %}<a href="?date={{ today|date:'Y-m-d' }}">Jump to today</a>{% endif %}
+  </form>
+  <button type="button" onclick="window.location.reload()" style="margin-left:auto;">Refresh</button>
+</div>
+
+<div class="card">
+  <h2>Sales &mdash; {{ date|date:"l, j F Y" }}</h2>
+
+  <div class="grid">
+    <div class="stat"><div class="label">Cash</div><div class="value">{{ totals_by_method.CASH }}</div></div>
+    <div class="stat"><div class="label">Mpesa</div><div class="value">{{ totals_by_method.MPESA }}</div></div>
+    <div class="stat"><div class="label">Credit</div><div class="value">{{ totals_by_method.CREDIT }}</div></div>
+    <div class="stat"><div class="label">Credit Paid (Cash)</div><div class="value">{{ credit_paid_cash }}</div></div>
+    <div class="stat"><div class="label">Credit Paid (Mpesa)</div><div class="value">{{ credit_paid_mpesa }}</div></div>
+    <div class="stat"><div class="label">Svc Cash</div><div class="value">{{ services_cash }}</div></div>
+    <div class="stat"><div class="label">Svc Mpesa</div><div class="value">{{ services_mpesa }}</div></div>
+    <div class="stat"><div class="label">Day Total</div><div class="value">{{ day_total }}</div></div>
+    <div class="stat net"><div class="label">Net Cash in Drawer</div><div class="value">{{ net_cash }}</div></div>
+  </div>
+
+  <form method="post" class="sale-form">
+    {% csrf_token %}
+    <input type="hidden" name="submit_token" value="{{ submit_token }}">
+    <input type="hidden" name="date" value="{{ date|date:'Y-m-d' }}">
+    <div class="field{% if form.item.errors %} has-error{% endif %}">
+      <label>Item</label>
+      {{ form.item }}
+      {{ form.item.errors }}
+    </div>
+    <div class="field{% if form.weight_kg.errors %} has-error{% endif %}">
+      <label>Weight (kg)</label>
+      {{ form.weight_kg }}
+      {{ form.weight_kg.errors }}
+    </div>
+    <div class="field{% if form.gross.errors %} has-error{% endif %}">
+      <label>Paid (if weight unknown)</label>
+      {{ form.gross }}
+      {{ form.gross.errors }}
+    </div>
+    <div class="field{% if form.payment_method.errors %} has-error{% endif %}">
+      <label>Payment</label>
+      {{ form.payment_method }}
+      {{ form.payment_method.errors }}
+    </div>
+    <div class="field{% if form.customer_name.errors %} has-error{% endif %}">
+      <label>Customer Name</label>
+      {{ form.customer_name }}
+      <datalist id="creditor-datalist">
+        {% for name in creditor_names %}<option value="{{ name }}">{% endfor %}
+      </datalist>
+      {{ form.customer_name.errors }}
+    </div>
+    <div class="field{% if form.customer_ctp.errors %} has-error{% endif %}">
+      <label>CTP Batch</label>
+      {{ form.customer_ctp }}
+      <datalist id="ctp-datalist">
+        {% for ctp in creditor_ctps %}<option value="{{ ctp }}">{% endfor %}
+      </datalist>
+      {{ form.customer_ctp.errors }}
+    </div>
+    <div class="field">
+      <label>Remarks</label>
+      {{ form.remarks }}
+    </div>
+    <div class="sale-actions">
+      <button type="submit" name="add_sale" value="1">Add Sale</button>
+      <small id="single-subtotal" class="subtotal-hint">—</small>
+      <button id="bulk-toggle" type="button" onclick="toggleBulk()" class="secondary">Bulk Entry (multiple sales at once)</button>
+    </div>
+  </form>
+  {% if form.non_field_errors %}<ul class="errorlist"><li>{{ form.non_field_errors.0 }}</li></ul>{% endif %}
+
+  <div id="bulk-section" style="display:none; margin-top:16px; padding:16px; background:#f9fafc; border:2px dashed var(--border); border-radius:10px;">
+    <h3 style="margin-top:0;">Bulk Sale Entry</h3>
+    {% if bulk_errors %}
+    <ul class="errorlist" style="margin-bottom:12px;">
+      {% for err in bulk_errors %}<li>{{ err }}</li>{% endfor %}
+    </ul>
+    {% endif %}
+    <form method="post" id="bulk-form">
+      {% csrf_token %}
+    <input type="hidden" name="submit_token" value="{{ submit_token }}">
+    <input type="hidden" name="date" value="{{ date|date:'Y-m-d' }}">
+    <datalist id="creditor-datalist-bulk">
+      {% for name in creditor_names %}<option value="{{ name }}">{% endfor %}
+    </datalist>
+    <datalist id="ctp-datalist-bulk">
+      {% for ctp in creditor_ctps %}<option value="{{ ctp }}">{% endfor %}
+    </datalist>
+      <table id="bulk-table">
+        <thead>
+          <tr>
+            <th>Item</th>
+            <th>Weight (kg)</th>
+            <th>Paid (KES) <small>if weight unknown</small></th>
+            <th>Subtotal</th>
+            <th>Payment</th>
+            <th>Customer</th>
+            <th>CTP</th>
+            <th>Remarks</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="bulk-rows">
+          <tr class="bulk-row">
+            <td>
+              <select name="item_0">
+                <option value="">— Select —</option>
+                {% for it in active_items %}
+                <option value="{{ it.pk }}">{{ it.name }} ({{ it.price_per_kg }}/kg)</option>
+                {% endfor %}
+              </select>
+            </td>
+            <td><input type="number" name="weight_kg_0" step="0.001" placeholder="e.g. 2.5"></td>
+            <td><input type="number" name="gross_0" step="0.01" placeholder="KES"></td>
+            <td><span class="bulk-subtotal">—</span></td>
+            <td>
+              <select name="payment_method_0">
+                {% for code, label in payment_choices %}
+                <option value="{{ code }}" {% if code == 'CASH' %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+            </td>
+            <td><input type="text" name="customer_name_0" placeholder="optional" list="creditor-datalist-bulk"></td>
+            <td><input type="text" name="customer_ctp_0" placeholder="optional" list="ctp-datalist-bulk"></td>
+            <td><input type="text" name="remarks_0"></td>
+            <td><button type="button" class="danger" onclick="removeBulkRow(this)" title="Remove row">X</button></td>
+          </tr>
+        </tbody>
+        <tfoot>
+          <tr style="background:#eef4fb;">
+            <td colspan="2" style="text-align:right;font-weight:700;">Grand Total:</td>
+            <td id="bulk-grand-total" style="font-weight:700;">—</td>
+            <td colspan="6"></td>
+          </tr>
+        </tfoot>
+      </table>
+      <div style="margin-top:10px; display:flex; gap:10px;">
+        <button type="button" id="add-row-btn" onclick="addBulkRow()">+ Add Row</button>
+        <button type="submit" name="add_bulk" value="1" style="background:var(--green);">Save All Sales</button>
+      </div>
+    </form>
+  </div>
+
+  <script>
+    var rowCount = 1;
+    var itemOptions = '{% for it in active_items %}<option value="{{ it.pk }}">{{ it.name|escapejs }} ({{ it.price_per_kg }}/kg)</option>{% endfor %}';
+    var paymentOptions = '{% for code, label in payment_choices %}<option value="{{ code|escapejs }}">{{ label|escapejs }}</option>{% endfor %}';
+
+    function toggleBulk() {
+      var s = document.getElementById('bulk-section');
+      var b = document.getElementById('bulk-toggle');
+      if (s.style.display === 'none') {
+        s.style.display = 'block';
+        b.textContent = 'Hide Bulk Entry';
+      } else {
+        s.style.display = 'none';
+        b.textContent = 'Bulk Entry (multiple sales at once)';
+      }
+    }
+
+    function addBulkRow() {
+      var tbody = document.getElementById('bulk-rows');
+      var row = document.createElement('tr');
+      row.className = 'bulk-row';
+      var idx = rowCount;
+      row.innerHTML =
+        '<td><select name="item_' + idx + '"><option value="">— Select —</option>' + itemOptions + '</select></td>' +
+        '<td><input type="number" name="weight_kg_' + idx + '" step="0.001" placeholder="e.g. 2.5"></td>' +
+        '<td><input type="number" name="gross_' + idx + '" step="0.01" placeholder="KES"></td>' +
+        '<td><span class="bulk-subtotal">—</span></td>' +
+        '<td><select name="payment_method_' + idx + '">' + paymentOptions + '</select></td>' +
+        '<td><input type="text" name="customer_name_' + idx + '" placeholder="optional" list="creditor-datalist-bulk"></td>' +
+        '<td><input type="text" name="customer_ctp_' + idx + '" placeholder="optional" list="ctp-datalist-bulk"></td>' +
+        '<td><input type="text" name="remarks_' + idx + '"></td>' +
+        '<td><button type="button" class="danger" onclick="removeBulkRow(this)" title="Remove row">X</button></td>';
+      tbody.appendChild(row);
+      rowCount++;
+      updateGrandTotal();
+    }
+
+    function removeBulkRow(btn) {
+      var row = btn.closest('tr');
+      row.parentNode.removeChild(row);
+      updateGrandTotal();
+    }
+
+    var itemPrices = {};
+    {% for it in active_items %}
+    itemPrices[{{ it.pk }}] = {{ it.price_per_kg }};
+    {% endfor %}
+
+    function updateSingleSubtotal() {
+      var item = document.querySelector('select[name="item"]');
+      var weightEl = document.querySelector('input[name="weight_kg"]');
+      var grossEl = document.querySelector('input[name="gross"]');
+      var subtotalEl = document.getElementById('single-subtotal');
+      if (!subtotalEl) return;
+
+      var weight = weightEl ? parseFloat(weightEl.value) : null;
+      var gross = grossEl ? parseFloat(grossEl.value) : null;
+
+      if (gross) {
+        subtotalEl.textContent = 'Subtotal: KES ' + gross.toLocaleString('en-KE', {minimumFractionDigits: 2});
+      } else if (weight && item && item.value && itemPrices[parseInt(item.value)]) {
+        var sub = weight * parseFloat(itemPrices[parseInt(item.value)]);
+        subtotalEl.textContent = 'Subtotal: ~KES ' + sub.toLocaleString('en-KE', {minimumFractionDigits: 2});
+      } else {
+        subtotalEl.textContent = '—';
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+      var item = document.querySelector('select[name="item"]');
+      var weightEl = document.querySelector('input[name="weight_kg"]');
+      var grossEl = document.querySelector('input[name="gross"]');
+      if (item) item.addEventListener('input', updateSingleSubtotal);
+      if (weightEl) weightEl.addEventListener('input', updateSingleSubtotal);
+      if (grossEl) grossEl.addEventListener('input', updateSingleSubtotal);
+    });
+
+    function computeSubtotal(row) {
+      var select = row.querySelector('select[name^="item_"]');
+      var weightEl = row.querySelector('input[name^="weight_kg_"]');
+      var grossEl = row.querySelector('input[name^="gross_"]');
+      var subtotalEl = row.querySelector('.bulk-subtotal');
+      if (!subtotalEl) return;
+
+      var itemId = select ? select.value : '';
+      var weight = weightEl ? parseFloat(weightEl.value) : null;
+      var gross = grossEl ? parseFloat(grossEl.value) : null;
+
+      if (gross) {
+        subtotalEl.textContent = gross.toLocaleString('en-KE', {minimumFractionDigits: 2});
+      } else if (weight && itemId && itemPrices[parseInt(itemId)]) {
+        var sub = weight * parseFloat(itemPrices[parseInt(itemId)]);
+        subtotalEl.textContent = sub.toLocaleString('en-KE', {minimumFractionDigits: 2});
+      } else {
+        subtotalEl.textContent = '—';
+      }
+    }
+
+    function updateGrandTotal() {
+      var total = 0;
+      document.querySelectorAll('.bulk-subtotal').forEach(function(el) {
+        var text = el.textContent.replace(/,/g, '');
+        var val = parseFloat(text);
+        if (!isNaN(val)) total += val;
+      });
+      document.getElementById('bulk-grand-total').textContent =
+        total > 0 ? total.toLocaleString('en-KE', {minimumFractionDigits: 2}) : '—';
+    }
+
+    function updateAllBulkSubtotals() {
+      document.querySelectorAll('.bulk-row').forEach(computeSubtotal);
+      updateGrandTotal();
+    }
+
+    document.getElementById('bulk-table').addEventListener('input', function(e) {
+      var row = e.target.closest('.bulk-row');
+      if (!row) return;
+      var tag = e.target.tagName;
+      if (tag === 'INPUT' && (e.target.name.indexOf('weight_kg_') === 0 || e.target.name.indexOf('gross_') === 0)) {
+        computeSubtotal(row);
+        updateGrandTotal();
+      }
+    });
+
+    document.getElementById('bulk-table').addEventListener('change', function(e) {
+      var row = e.target.closest('.bulk-row');
+      if (!row) return;
+      if (e.target.tagName === 'SELECT' && e.target.name.indexOf('item_') === 0) {
+        computeSubtotal(row);
+        updateGrandTotal();
+      }
+    });
+
+    {% if bulk_errors %}document.getElementById('bulk-section').style.display = 'block';{% endif %}
+  </script>
+
+  <form method="get" class="inline" style="margin-bottom:12px; align-items:center;">
+    <input type="hidden" name="date" value="{{ date|date:'Y-m-d' }}">
+    <div class="field">
+      <label>Show</label>
+      <select name="filter_payment" onchange="this.form.submit()">
+        <option value="">All</option>
+        {% for code, label in payment_choices %}
+        <option value="{{ code }}" {% if filter_payment == code %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    {% if filter_payment %}<a href="?date={{ date|date:'Y-m-d' }}" style="color:var(--red);padding:8px;">Clear</a>{% endif %}
+  </form>
+
+  <div style="margin-bottom:12px;">
+    <button type="button" onclick="printSelected()">Print Selected Receipt</button>
+  </div>
+
+  <script>
+    function toggleAllSales(master) {
+      document.querySelectorAll('.sale-check').forEach(function (cb) {
+        cb.checked = master.checked;
+      });
+    }
+
+    function printSelected() {
+      var ids = [];
+      document.querySelectorAll('.sale-check:checked').forEach(function (cb) {
+        ids.push(cb.value);
+      });
+      if (ids.length === 0) {
+        alert('Select at least one sale to print.');
+        return;
+      }
+      window.open('{% url 'receipt_selected' %}?ids=' + ids.join(','), '_blank');
+    }
+  </script>
+
+  <table>
+    <thead>
+      <tr><th><input type="checkbox" onclick="toggleAllSales(this)" title="Select all"></th><th>Item</th><th>Weight (kg)</th><th>Gross</th><th>Payment</th><th>Customer</th><th>Remarks</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for sale in sales %}
+      <tr>
+        <td><input type="checkbox" class="sale-check" value="{{ sale.pk }}"></td>
+        <td>{{ sale.item.name }}</td>
+        <td>{{ sale.weight_kg }}</td>
+        <td>{{ sale.gross }}</td>
+        <td><span class="badge {{ sale.payment_method }}">{{ sale.get_payment_method_display }}</span></td>
+        <td>{{ sale.customer_name }}</td>
+        <td>{{ sale.remarks }}</td>
+        <td>
+          <a href="{% url 'receipt_sale' sale.pk %}" target="_blank" style="color:var(--green); margin-right:8px; font-size:0.85em; font-weight:600; text-decoration:none;">Receipt</a>
+          <a href="{% url 'edit_sale' sale.pk %}" style="color:var(--blue); margin-right:8px; font-size:0.85em; font-weight:600; text-decoration:none;">Edit</a>
+          <form method="post" action="{% url 'delete_sale' sale.pk %}?filter_payment={{ filter_payment }}" onsubmit="return confirm('Delete this sale?')" style="display:inline">
+            {% csrf_token %}<button type="submit" class="danger">Delete</button>
+          </form>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="8" class="empty">No sales recorded for this day yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h2>Expenses &mdash; total: {{ expense_total }}</h2>
+  <form method="post" class="inline">
+    {% csrf_token %}
+    <input type="hidden" name="submit_token" value="{{ submit_token }}">
+    <input type="hidden" name="date" value="{{ date|date:'Y-m-d' }}">
+    <div class="field"><label>Description</label>{{ exp_form.description }}{{ exp_form.description.errors }}
+      <datalist id="expense-list">
+        {% for name in expense_descriptions %}<option value="{{ name }}">{% endfor %}
+      </datalist>
+    </div>
+    <div class="field"><label>Amount</label>{{ exp_form.amount }}{{ exp_form.amount.errors }}</div>
+    <div class="field"><label>Payment</label>{{ exp_form.payment_method }}{{ exp_form.payment_method.errors }}</div>
+    <button type="submit" name="add_expense" value="1">Add Expense</button>
+  </form>
+
+  <table>
+    <thead><tr><th>Description</th><th>Amount</th><th>Mode</th><th></th></tr></thead>
+    <tbody>
+      {% for exp in expenses %}
+      <tr>
+        <td>{{ exp.description }}</td>
+        <td>{{ exp.amount }}</td>
+        <td><span class="badge {{ exp.payment_method }}">{{ exp.get_payment_method_display }}</span></td>
+        <td>
+          <a href="{% url 'edit_expense' exp.pk %}" style="color:var(--blue); margin-right:8px; font-size:0.85em; font-weight:600; text-decoration:none;">Edit</a>
+          <form method="post" action="{% url 'delete_expense' exp.pk %}?filter_payment={{ filter_payment }}" onsubmit="return confirm('Delete this expense?')" style="display:inline">
+            {% csrf_token %}<button type="submit" class="danger">Delete</button>
+          </form>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="4" class="empty">No expenses recorded for this day yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h2>Credit Payments Received &mdash; total: KES {{ credit_paid_total }}</h2>
+  <table>
+    <thead><tr><th>Customer</th><th>Sale</th><th>Amount</th><th>Mode</th><th>Note</th></tr></thead>
+    <tbody>
+      {% for cp in credit_payments %}
+      <tr>
+        <td>{{ cp.customer_name }}</td>
+        <td>{% if cp.sale %}{{ cp.sale.reference }} - {{ cp.sale.item.name }}{% else %}-{% endif %}</td>
+        <td>KES {{ cp.amount }}</td>
+        <td><span class="badge {{ cp.payment_mode }}">{{ cp.get_payment_mode_display }}</span></td>
+        <td>{{ cp.note }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="5" class="empty">No credit payments received today.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h2>Other Services &mdash; total: {{ services_total }}</h2>
+  <form method="post" class="inline">
+    {% csrf_token %}
+    <input type="hidden" name="submit_token" value="{{ submit_token }}">
+    <input type="hidden" name="date" value="{{ date|date:'Y-m-d' }}">
+    <div class="field"><label>Description</label>{{ svc_form.description }}{{ svc_form.description.errors }}</div>
+    <div class="field"><label>Amount</label>{{ svc_form.amount }}{{ svc_form.amount.errors }}</div>
+    <div class="field"><label>Payment</label>{{ svc_form.payment_method }}{{ svc_form.payment_method.errors }}</div>
+    <button type="submit" name="add_service" value="1">Add Service</button>
+  </form>
+
+  <table>
+    <thead><tr><th>Description</th><th>Amount</th><th>Payment</th><th></th></tr></thead>
+    <tbody>
+      {% for svc in other_services %}
+      <tr>
+        <td>{{ svc.description }}</td>
+        <td>{{ svc.amount }}</td>
+        <td>{{ svc.get_payment_method_display }}</td>
+        <td>
+          <a href="{% url 'edit_other_service' svc.pk %}" style="color:var(--blue); margin-right:8px; font-size:0.85em; font-weight:600; text-decoration:none;">Edit</a>
+          <form method="post" action="{% url 'delete_other_service' svc.pk %}?filter_payment={{ filter_payment }}" onsubmit="return confirm('Delete this service?')" style="display:inline">
+            {% csrf_token %}<button type="submit" class="danger">Delete</button>
+          </form>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="4" class="empty">No other services recorded for this day yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h2>Sold Today &mdash; {{ date|date:"l, j F Y" }}</h2>
+  <table>
+    <thead><tr><th>Item</th><th>Sold (kg)</th><th>Gross (KES)</th></tr></thead>
+    <tbody>
+      {% for s in sold_by_item %}
+      <tr>
+        <td>{{ s.item__name }}</td>
+        <td>{{ s.total_kg|default:"0" }}</td>
+        <td>{{ s.total_gross|default:"0" }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="3" class="empty">No sales recorded today.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="card" id="close-card" style="display:none;">
+  <h2>Close Day &mdash; {{ date|date:"l, j F Y" }}</h2>
+  <div class="grid">
+    <div class="stat"><div class="label">Cash Sales</div><div class="value">KES {{ totals_by_method.CASH }}</div></div>
+    <div class="stat"><div class="label">Mpesa</div><div class="value">KES {{ totals_by_method.MPESA }}</div></div>
+    <div class="stat"><div class="label">Credit</div><div class="value">KES {{ totals_by_method.CREDIT }}</div></div>
+    <div class="stat"><div class="label">Credit Paid (Cash)</div><div class="value">KES {{ credit_paid_cash }}</div></div>
+    <div class="stat"><div class="label">Credit Paid (Mpesa)</div><div class="value">KES {{ credit_paid_mpesa }}</div></div>
+    <div class="stat"><div class="label">Services (Cash)</div><div class="value">KES {{ services_cash }}</div></div>
+    <div class="stat"><div class="label">Services (Mpesa)</div><div class="value">KES {{ services_mpesa }}</div></div>
+    <div class="stat"><div class="label">Day Total</div><div class="value">KES {{ day_total }}</div></div>
+    <div class="stat"><div class="label">Expenses (Cash)</div><div class="value">KES {{ expense_cash }}</div></div>
+    <div class="stat"><div class="label">Expenses (Mpesa)</div><div class="value">KES {{ expense_mpesa }}</div></div>
+    <div class="stat net"><div class="label">Net Cash</div><div class="value">KES {{ net_cash }}</div></div>
+  </div>
+
+  <h3>Stock Remaining at Close</h3>
+  <table>
+    <thead><tr><th>Item</th><th>Opening (kg)</th><th>Sold (kg)</th><th>Remaining (kg)</th></tr></thead>
+    <tbody>
+      {% for s in stock_rows %}
+      <tr>
+        <td>{{ s.item.name }}</td>
+        <td>{{ s.opening_kg }}</td>
+        <td>{{ s.sold_kg }}</td>
+        <td>{{ s.remaining_kg }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="4" class="empty">No stock data.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <button onclick="window.print()" style="margin-top:12px;">Print Close Summary</button>
+</div>
+
+<div style="text-align:center; margin:16px 0;">
+  <button id="close-toggle" onclick="var c=document.getElementById('close-card');var b=document.getElementById('close-toggle');if(c.style.display==='none'){c.style.display='block';b.textContent='Hide Summary';}else{c.style.display='none';b.textContent='Close Day';}">Close Day</button>
+</div>
+
+<style>
+  .sale-form { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; align-items: end; }
+  .sale-form .field { min-width: 0; }
+  .sale-actions { grid-column: 1 / -1; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-top: 4px; }
+  .subtotal-hint { color: var(--blue-dark); font-weight: 600; font-size: 0.9em; }
+  button.secondary { background: var(--green); }
+  @media (max-width: 920px) {
+    .sale-form { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  }
+</style>
+
+{% endblock %}

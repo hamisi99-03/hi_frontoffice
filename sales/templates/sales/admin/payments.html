@@ -1,0 +1,58 @@
+﻿{% extends "base.html" %}
+{% block title %}Payments - {{ COMPANY_NAME }}{% endblock %}
+{% block content %}
+
+<h2>Credit Payments</h2>
+
+<form method="get" class="inline" style="margin-bottom:16px;">
+  <div class="field"><label>From</label><input type="date" name="date_from" value="{{ date_from }}"></div>
+  <div class="field"><label>To</label><input type="date" name="date_to" value="{{ date_to }}"></div>
+  <div class="field">
+    <label>Customer</label>
+    <input type="text" name="q" value="{{ q }}" placeholder="Search by name..." list="payment-customer-list">
+    <datalist id="payment-customer-list">
+      {% for name in customer_names %}<option value="{{ name }}">{% endfor %}
+    </datalist>
+  </div>
+  <button type="submit">Filter</button>
+  <a href="{% url 'admin_payments' %}" style="color:var(--red);padding:9px;">Clear</a>
+</form>
+
+<div class="grid">
+  <div class="stat"><div class="label">Total Payments</div><div class="value">KES {{ total|floatformat:2 }}</div></div>
+</div>
+
+{% for customer_name, data in grouped %}
+<div class="card">
+  <h3>{{ customer_name }}
+    <span style="font-size:0.85em;color:#888;">— paid KES {{ data.total|floatformat:2 }}</span>
+    <a href="{% url 'creditor_statement' %}?name={{ customer_name|urlencode }}" style="float:right;font-size:0.85em;color:var(--blue);">Print Statement</a>
+  </h3>
+  <table>
+    <thead><tr><th>Date</th><th>Sale</th><th>Amount</th><th>Mode</th><th>Note</th><th>Cashier</th><th></th></tr></thead>
+    <tbody>
+      {% for p in data.payments %}
+      <tr>
+        <td>{{ p.date }}</td>
+        <td>{% if p.sale %}{{ p.sale.reference }} - {{ p.sale.item.name }}{% else %}-{% endif %}</td>
+        <td>KES {{ p.amount }}</td>
+        <td>{{ p.get_payment_mode_display }}</td>
+        <td>{{ p.note }}</td>
+        <td>{{ p.created_by }}</td>
+        <td>
+          <form method="post" onsubmit="return confirm('Delete this payment?')" style="display:inline">
+            {% csrf_token %}
+            <input type="hidden" name="payment_id" value="{{ p.pk }}">
+            <button type="submit" name="delete_payment" class="danger">Delete</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% empty %}
+<div class="card"><p class="empty">No payments found.</p></div>
+{% endfor %}
+
+{% endblock %}

@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Log in - {{ COMPANY_NAME }}{% endblock %}
+{% block content %}
+<div class="card" style="max-width:360px; margin: 60px auto;">
+  <h2 style="text-align:center">{{ COMPANY_NAME }}</h2>
+  <p style="text-align:center;font-style:italic;color:#2c5aa0;margin-top:-10px;">"{{ COMPANY_MOTTO }}"</p>
+  <form method="post">
+    {% csrf_token %}
+    <div class="field" style="margin-bottom:14px">
+      <label>Username</label>
+      {{ form.username }}
+    </div>
+    <div class="field" style="margin-bottom:14px">
+      <label>Password</label>
+      {{ form.password }}
+    </div>
+    {% if form.errors %}<p style="color:#c0392b">Incorrect username or password.</p>{% endif %}
+    <button type="submit" style="width:100%">Log in</button>
+  </form>
+</div>
+{% endblock %}

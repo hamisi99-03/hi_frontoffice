@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Statement - {{ name }} - {{ COMPANY_NAME }}{% endblock %}
+{% block content %}
+
+<div class="no-print" style="margin-bottom:12px;">
+  <a href="{% url 'credit_ledger' %}" style="color:var(--blue);">&laquo; Back to Credit Ledger</a>
+  <button onclick="window.print()" style="float:right;">Print Statement</button>
+</div>
+
+<div class="card statement">
+  <div class="statement-head">
+    <div>
+      <div class="biz-name">{{ COMPANY_NAME }}</div>
+      <div class="biz-sub">"{{ COMPANY_MOTTO }}" &mdash; {{ COMPANY_ADDRESS }} &mdash; Tel: {{ COMPANY_PHONE }}</div>
+      <div class="biz-sub">Customer Credit Statement</div>
+    </div>
+    <div class="statement-meta">
+      <div>Customer: <strong>{{ name }}</strong></div>
+      <div>Statement date: {{ today }}</div>
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr><th>Date</th><th>CTP</th><th>Description</th><th>Purchases (KES)</th><th>Payments (KES)</th><th>Balance (KES)</th></tr>
+    </thead>
+    <tbody>
+      {% for t in transactions %}
+      <tr>
+        <td>{{ t.date }}</td>
+        <td>{% if t.ctp %}{{ t.ctp }}{% else %}—{% endif %}</td>
+        <td>{{ t.description }}</td>
+        <td>{% if t.debit %}{{ t.debit|floatformat:2 }}{% else %}—{% endif %}</td>
+        <td>{% if t.credit %}{{ t.credit|floatformat:2 }}{% else %}—{% endif %}</td>
+        <td>{{ t.balance|floatformat:2 }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="6" class="empty">No credit activity recorded for this customer.</td></tr>
+      {% endfor %}
+    </tbody>
+    <tfoot>
+      <tr class="totals-row">
+        <td colspan="3">Totals</td>
+        <td>{{ total_owed|floatformat:2 }}</td>
+        <td>{{ total_paid|floatformat:2 }}</td>
+        <td></td>
+      </tr>
+    </tfoot>
+  </table>
+
+  <div class="balance-box">
+    <span>Amount Outstanding</span>
+    <span class="balance-value">KES {{ balance|floatformat:2 }}</span>
+  </div>
+</div>
+
+<style>
+  .no-print { overflow: hidden; }
+  .statement-head { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 14px; }
+  .biz-name { font-size: 1.6em; font-weight: 800; color: var(--blue-dark); }
+  .biz-sub { color: #666; }
+  .statement-meta { text-align: right; font-size: 0.95em; }
+  tfoot .totals-row td { font-weight: 700; border-top: 2px solid var(--blue-dark); }
+  .balance-box {
+    margin-top: 16px; padding: 14px 18px; background: #eef4fb;
+    border-radius: 8px; display: flex; justify-content: space-between; align-items: center;
+  }
+  .balance-value { font-size: 1.5em; font-weight: 800; color: var(--blue-dark); }
+</style>
+
+{% endblock %}

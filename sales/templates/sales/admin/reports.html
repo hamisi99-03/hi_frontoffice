@@ -1,0 +1,66 @@
+﻿{% extends "base.html" %}
+{% block title %}Reports - {{ COMPANY_NAME }}{% endblock %}
+{% block content %}
+
+<h2>Reports</h2>
+
+<form method="get" class="inline" style="margin-bottom:16px;">
+  <div class="field"><label>From</label><input type="date" name="date_from" value="{{ date_from }}"></div>
+  <div class="field"><label>To</label><input type="date" name="date_to" value="{{ date_to }}"></div>
+  <button type="submit">Generate</button>
+  {% if date_from or date_to %}
+  <a href="{% url 'admin_reports' %}" style="color:var(--red);padding:9px;">Clear</a>
+  {% endif %}
+</form>
+
+{% if date_from or date_to %}
+<div style="text-align:right; margin-bottom:8px;">
+  <a href="{% url 'admin_reports_export' %}?{{ query_string }}" style="text-decoration:none; background:var(--green); color:white; padding:8px 16px; border-radius:6px; font-weight:600;">Download CSV</a>
+  <button onclick="window.print()" style="margin-left:8px;">Print</button>
+</div>
+{% endif %}
+
+<div class="card">
+  <h3>Summary</h3>
+  <div class="grid">
+    <div class="stat"><div class="label">Total Sales</div><div class="value">KES {{ summary.total }}</div></div>
+    <div class="stat"><div class="label">Cash</div><div class="value">KES {{ summary.cash }}</div></div>
+    <div class="stat"><div class="label">Mpesa</div><div class="value">KES {{ summary.mpesa }}</div></div>
+    <div class="stat"><div class="label">Credit</div><div class="value">KES {{ summary.credit }}</div></div>
+    <div class="stat"><div class="label">Services</div><div class="value">KES {{ services_total }}</div></div>
+    <div class="stat"><div class="label">Expenses</div><div class="value">KES {{ expenses_total }}</div></div>
+    <div class="stat net"><div class="label">Net Cash</div><div class="value">KES {{ net }}</div></div>
+  </div>
+</div>
+
+<div class="card">
+  <h3>Sales by Item</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Item</th>
+        <th>Sold (kg)</th>
+        <th>Gross (KES)</th>
+        <th>Avg Price/kg</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in by_item %}
+      <tr>
+        <td>{{ row.item__name }}</td>
+        <td>{{ row.total_kg|floatformat:3 }}</td>
+        <td>{{ row.total_gross }}</td>
+        <td>
+          {% if row.total_kg and row.total_kg > 0 %}
+            {% widthratio row.total_gross row.total_kg 1 %}
+          {% else %}—{% endif %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="4" class="empty">No sales data in this date range.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}

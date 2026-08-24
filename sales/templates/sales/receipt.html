@@ -1,0 +1,117 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ doc_type }} - {{ COMPANY_NAME }}</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Courier New", Courier, monospace;
+    background: #e9ecef;
+    margin: 0;
+    padding: 16px;
+    color: #111;
+  }
+  .toolbar {
+    max-width: 360px; margin: 0 auto 12px; display: flex; gap: 8px; align-items: center;
+  }
+  .toolbar a { color: #2c5aa0; text-decoration: none; font-family: Arial, sans-serif; font-size: 0.9em; }
+  .toolbar button {
+    margin-left: auto; background: #2c5aa0; color: #fff; border: none;
+    padding: 8px 14px; border-radius: 6px; cursor: pointer; font-weight: 600;
+  }
+  .receipt {
+    max-width: 360px; margin: 0 auto; background: #fff; padding: 18px 16px;
+    border-radius: 4px; box-shadow: 0 2px 10px rgba(0,0,0,0.12);
+    font-size: 13px; line-height: 1.35;
+  }
+  .center { text-align: center; }
+  .brand { font-size: 18px; font-weight: 700; letter-spacing: 0.5px; }
+  .motto { font-style: italic; font-size: 12px; color: #2c5aa0; margin: 2px 0 6px; }
+  .addr { font-size: 11px; color: #333; }
+  .rule { border-top: 1px dashed #000; margin: 10px 0; }
+  .rule.thick { border-top: 2px solid #000; }
+  .doc-type {
+    text-align: center; font-weight: 700; font-size: 15px; letter-spacing: 2px;
+    margin: 4px 0; padding: 4px 0; border: 1px solid #000; border-left: none; border-right: none;
+  }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 2px 0; vertical-align: top; }
+  .qty, .amt, .price { text-align: right; white-space: nowrap; }
+  th { font-size: 11px; border-bottom: 1px solid #000; }
+  .total-row td { font-weight: 700; font-size: 15px; }
+  .meta { margin: 4px 0; }
+  .meta .k { font-weight: 700; }
+  .footer { text-align: center; font-size: 11px; margin-top: 10px; }
+  @media print {
+    body { background: #fff; padding: 0; }
+    .toolbar { display: none; }
+    .receipt { box-shadow: none; border-radius: 0; max-width: none; padding: 8px 12px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <a href="javascript:history.back()">&laquo; Back</a>
+  <button onclick="window.print()">Print</button>
+</div>
+
+<div class="receipt">
+  <div class="center">
+    <div class="brand">{{ COMPANY_NAME }}</div>
+    <div class="motto">"{{ COMPANY_MOTTO }}"</div>
+    <div class="addr">{{ COMPANY_ADDRESS }}<br>Tel: {{ COMPANY_PHONE }}</div>
+  </div>
+
+  <div class="rule thick"></div>
+  <div class="doc-type">{{ doc_type }}</div>
+  <div class="rule"></div>
+
+  <div class="meta">
+    {% if receipt_no %}<div><span class="k">Receipt No:</span> {{ receipt_no }}</div>{% endif %}
+    <div><span class="k">Date:</span> {{ date|date:"d/m/Y" }}</div>
+    {% if customer %}<div><span class="k">Customer:</span> {{ customer }}</div>{% endif %}
+  </div>
+
+  <table>
+    <thead>
+      <tr><th>Item</th><th class="qty">Qty(kg)</th><th class="price">@KES</th><th class="amt">Amount</th></tr>
+    </thead>
+    <tbody>
+      {% for sale in sales %}
+      <tr>
+        <td>{{ sale.item.name }}</td>
+        <td class="qty">{% if sale.weight_kg %}{{ sale.weight_kg }}{% else %}—{% endif %}</td>
+        <td class="price">{{ sale.item.price_per_kg }}</td>
+        <td class="amt">{{ sale.gross }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="rule"></div>
+  <table>
+    <tr class="total-row">
+      <td>TOTAL</td>
+      <td class="amt">KES {{ total|floatformat:2 }}</td>
+    </tr>
+    {% if sales|length == 1 %}
+    <tr>
+      <td>Payment</td>
+      <td class="amt">{{ sales.0.get_payment_method_display }}</td>
+    </tr>
+    {% endif %}
+  </table>
+
+  <div class="rule thick"></div>
+  <div class="footer">
+    Goods once sold cannot be re-accepted.<br>
+    Thank you for shopping with us.
+  </div>
+</div>
+
+</body>
+</html>

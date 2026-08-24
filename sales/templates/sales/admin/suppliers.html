@@ -1,0 +1,60 @@
+﻿{% extends "base.html" %}
+{% block title %}Suppliers - {{ COMPANY_NAME }}{% endblock %}
+{% block content %}
+
+<h2>Suppliers</h2>
+
+<div class="card">
+  <h3>Add Supplier Delivery</h3>
+  <form method="post" class="inline">
+    {% csrf_token %}
+    <div class="field"><label>Date Supplied</label>{{ form.date_supplied }}{{ form.date_supplied.errors }}</div>
+    <div class="field"><label>Supplier Name</label>{{ form.supplier_name }}{{ form.supplier_name.errors }}</div>
+    <div class="field"><label>Goods Supplied</label>{{ form.item_name }}{{ form.item_name.errors }}</div>
+    <div class="field"><label>Unit Price (KES/kg)</label>{{ form.unit_price }}{{ form.unit_price.errors }}</div>
+    <div class="field"><label>Total Kilos</label>{{ form.total_kgs }}{{ form.total_kgs.errors }}</div>
+    <button type="submit">Add Supplier</button>
+  </form>
+</div>
+
+<div class="grid">
+  <div class="stat"><div class="label">Total Supplied</div><div class="value">KES {{ total_value|floatformat:2 }}</div></div>
+  <div class="stat"><div class="label">Total Paid</div><div class="value">KES {{ total_paid|floatformat:2 }}</div></div>
+  <div class="stat net"><div class="label">Total Balance</div><div class="value">KES {{ total_balance|floatformat:2 }}</div></div>
+</div>
+
+<div class="card">
+  <table>
+    <thead><tr><th>Date Supplied</th><th>Supplier</th><th>Goods</th><th>Unit Price</th><th>Kilos</th><th>Total</th><th>Date Paid</th><th>Amount Paid</th><th>Balance</th><th>Mode</th><th>Remarks</th><th></th></tr></thead>
+    <tbody>
+      {% for s in suppliers %}
+      <tr>
+        <td>{{ s.date_supplied }}</td>
+        <td>{{ s.supplier_name }}</td>
+        <td>{{ s.item_name }}</td>
+        <td>KES {{ s.unit_price|floatformat:2 }}</td>
+        <td>{{ s.total_kgs }}</td>
+        <td>KES {{ s.total|floatformat:2 }}</td>
+        <td>{{ s.date_paid|default:"—" }}</td>
+        <td>KES {{ s.amount_paid|floatformat:2 }}</td>
+        <td {% if s.balance > 0 %}style="color:var(--red);font-weight:600;"{% endif %}>KES {{ s.balance|floatformat:2 }}</td>
+        <td><span class="badge {{ s.payment_mode }}">{{ s.get_payment_mode_display }}</span></td>
+        <td>{{ s.remarks }}</td>
+        <td style="white-space:nowrap;">
+          {% if s.balance > 0 %}<a href="{% url 'admin_supplier_pay' s.pk %}" style="color:var(--green); margin-right:8px; font-size:0.85em; font-weight:600; text-decoration:none;">Pay</a>{% endif %}
+          <a href="{% url 'admin_supplier_edit' s.pk %}" style="color:var(--blue); margin-right:8px; font-size:0.85em; font-weight:600; text-decoration:none;">Edit</a>
+          <form method="post" onsubmit="return confirm('Delete this supplier entry?')" style="display:inline">
+            {% csrf_token %}
+            <input type="hidden" name="supplier_id" value="{{ s.pk }}">
+            <button type="submit" name="delete_supplier" class="danger">Delete</button>
+          </form>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="12" class="empty">No supplier deliveries recorded yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}

@@ -1,0 +1,197 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}{{ COMPANY_NAME }}{% endblock %}</title>
+<style>
+  :root {
+    --blue: #2c5aa0;
+    --blue-dark: #1e3f73;
+    --green: #1a7f37;
+    --red: #c0392b;
+    --bg: #f4f6f8;
+    --border: #d7dde3;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    background: var(--bg);
+    margin: 0;
+    color: #1c1c1c;
+    font-size: 16px;
+  }
+  header {
+    background: var(--blue-dark);
+    color: white;
+    padding: 14px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  header a {
+    color: white;
+    text-decoration: none;
+    margin-right: 20px;
+    font-weight: 600;
+  }
+  header .brand { font-size: 1.2em; font-weight: 700; margin-right: 30px; }
+  .dropdown { position: relative; display: inline-block; }
+  .dropdown > a { cursor: pointer; }
+  .dropdown-content {
+    display: none; position: absolute; top: 100%; left: 0;
+    background: #fff; min-width: 210px; box-shadow: 0 6px 16px rgba(0,0,0,0.25);
+    border-radius: 8px; z-index: 20; padding: 6px 0;
+  }
+  .dropdown-content a {
+    color: #1c1c1c; display: block; padding: 9px 18px;
+    text-decoration: none; font-weight: 500; margin: 0; font-size: 0.92em;
+  }
+  .dropdown-content a:hover { background: #eef4fb; }
+  .dropdown:hover .dropdown-content { display: block; }
+  main { max-width: 1100px; margin: 24px auto; padding: 0 16px; }
+  .card {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+  h1, h2, h3 { margin-top: 0; }
+  table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); }
+  th { background: #eef2f7; font-size: 0.85em; text-transform: uppercase; color: #555; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin: 14px 0; }
+  .stat { background: #eef4fb; border-radius: 8px; padding: 14px; text-align: center; }
+  .stat .label { font-size: 0.8em; color: #556; text-transform: uppercase; }
+  .stat .value { font-size: 1.6em; font-weight: 700; color: var(--blue-dark); }
+  .stat.net { background: #eaf7ec; }
+  .stat.net .value { color: var(--green); }
+  form.inline { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
+  label { display: block; font-size: 0.82em; color: #444; margin-bottom: 3px; }
+  input, select {
+    padding: 9px 10px; border: 1px solid var(--border); border-radius: 6px;
+    font-size: 1em; width: 100%;
+  }
+  .field { min-width: 140px; }
+  button {
+    background: var(--blue); color: white; border: none; border-radius: 6px;
+    padding: 10px 18px; font-size: 1em; cursor: pointer; font-weight: 600;
+  }
+  button:hover { background: var(--blue-dark); }
+  button.danger { background: var(--red); padding: 6px 10px; font-size: 0.85em; }
+  .errorlist { color: var(--red); font-size: 0.85em; list-style: none; padding: 0; margin: 4px 0 0; }
+  .field.has-error input,
+  .field.has-error select { border-color: var(--red); }
+  .field .errorlist { margin-bottom: 4px; }
+  .date-nav { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+  .date-nav a { text-decoration: none; background: #e4e9ef; padding: 6px 12px; border-radius: 6px; color: #333; font-weight: 600; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.78em; font-weight: 600; }
+  .badge.CASH { background: #d9f2e3; color: #146c2e; }
+  .badge.MPESA { background: #fdecd2; color: #96590a; }
+  .badge.CREDIT { background: #fbdede; color: #a12727; }
+  .messages {
+    position: fixed; top: 16px; right: 16px; z-index: 1000;
+    list-style: none; padding: 0; margin: 0; max-width: 380px;
+  }
+  .empty { color: #888; font-style: italic; padding: 12px 0; }
+  .flash {
+    padding: 12px 16px; border-radius: 8px; margin: 0 0 10px;
+    font-weight: 600; border: 1px solid transparent; cursor: pointer;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.18); transition: opacity 0.4s;
+  }
+  .flash.success { background: #d9f2e3; color: #146c2e; border-color: #bfe6cf; }
+  .flash.error, .flash.warning { background: #fdeceb; color: #a12727; border-color: #f5c6c6; }
+  .flash.info { background: #eef4fb; color: var(--blue-dark); border-color: #d7e3f2; }
+  @media print {
+    header, button, form, .date-nav, a[href], .badge { display: none; }
+    body { background: white; font-size: 12pt; }
+    .card { border: none; box-shadow: none; padding: 8px 0; }
+    table { font-size: 11pt; }
+    th { background: #ddd; color: #000; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div style="display:flex; align-items:center; flex-wrap:wrap;">
+    <span class="brand">{{ COMPANY_NAME }}</span>
+    {% if user.is_authenticated %}
+      <a href="{% url 'daily_entry' %}">Today's Sales</a>
+      <a href="{% url 'credit_ledger' %}">Credit Ledger</a>
+      {% if user.is_staff %}
+      <div class="dropdown">
+        <a href="#" onclick="return false;">Manage â–¾</a>
+        <div class="dropdown-content">
+          <a href="{% url 'admin_items' %}">Items &amp; Prices</a>
+          <a href="{% url 'admin_suppliers' %}">Suppliers</a>
+          <a href="{% url 'admin_stock' %}">Stock</a>
+          <a href="{% url 'admin_sales' %}">Browse Sales</a>
+          <a href="{% url 'admin_expenses' %}">Browse Expenses</a>
+          <a href="{% url 'admin_expense_summary' %}">Expense Summary</a>
+          <a href="{% url 'admin_payments' %}">Credit Payments</a>
+          <a href="{% url 'admin_users' %}">Manage Users</a>
+          <a href="{% url 'admin_reports' %}">Reports</a>
+        </div>
+      </div>
+      {% endif %}
+    {% endif %}
+  </div>
+  {% if user.is_authenticated %}
+    <div style="display:flex; align-items:center;">
+      <span style="margin-right:14px;">{{ user.username }}</span>
+      <a href="{% url 'password_change' %}" style="margin-right:14px;">Change Password</a>
+      <form method="post" action="{% url 'logout' %}" style="display:inline">
+        {% csrf_token %}
+        <a href="#" onclick="this.closest('form').submit(); return false;">Log out</a>
+      </form>
+    </div>
+  {% endif %}
+</header>
+<main>
+{% if messages %}
+<ul class="messages">
+  {% for message in messages %}
+  <li class="flash {{ message.tags }}">{{ message }}</li>
+  {% endfor %}
+</ul>
+{% endif %}
+{% block content %}{% endblock %}
+</main>
+<script>
+document.addEventListener('submit', function (e) {
+  var form = e.target;
+  if (!form || !form.method || form.method.toLowerCase() !== 'post') return;
+  if (form.dataset.submitting === 'true') {
+    e.preventDefault();
+    return false;
+  }
+  form.dataset.submitting = 'true';
+  try { sessionStorage.setItem('{{ COMPANY_NAME }}_scroll', String(window.scrollY || 0)); } catch (err) {}
+});
+
+(function restoreScroll() {
+  try {
+    var raw = sessionStorage.getItem('{{ COMPANY_NAME }}_scroll');
+    if (raw !== null) {
+      sessionStorage.removeItem('{{ COMPANY_NAME }}_scroll');
+      var y = parseInt(raw, 10);
+      if (!isNaN(y)) window.scrollTo(0, y);
+    }
+  } catch (err) {}
+})();
+
+(function flashToasts() {
+  var items = document.querySelectorAll('.messages .flash');
+  items.forEach(function (el) {
+    el.addEventListener('click', function () { el.remove(); });
+    setTimeout(function () {
+      el.style.opacity = '0';
+      setTimeout(function () { el.remove(); }, 400);
+    }, 4500);
+  });
+})();
+</script>
+</body>
+</html>

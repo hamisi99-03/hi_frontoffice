@@ -1,0 +1,24 @@
+﻿{% extends "base.html" %}
+{% block title %}Record Payment - {{ COMPANY_NAME }}{% endblock %}
+{% block content %}
+
+<div class="card">
+  <h2>Record Supplier Payment</h2>
+  <p style="color:#555;">
+    <strong>{{ supplier.supplier_name }}</strong> — {{ supplier.item_name }}<br>
+    Supplied {{ supplier.total_kgs }} kg @ KES {{ supplier.unit_price|floatformat:2 }} = <strong>KES {{ supplier.total|floatformat:2 }}</strong><br>
+    Already paid: KES {{ supplier.amount_paid|floatformat:2 }} &nbsp;|&nbsp; Balance: <strong>KES {{ supplier.balance|floatformat:2 }}</strong>
+  </p>
+
+  <form method="post" class="inline">
+    {% csrf_token %}
+    <div class="field{% if form.date_paid.errors %} has-error{% endif %}"><label>Date Paid</label>{{ form.date_paid }}{{ form.date_paid.errors }}</div>
+    <div class="field{% if form.amount.errors %} has-error{% endif %}"><label>Amount Paid</label>{{ form.amount }}{{ form.amount.errors }}</div>
+    <div class="field{% if form.payment_mode.errors %} has-error{% endif %}"><label>Payment Mode</label>{{ form.payment_mode }}{{ form.payment_mode.errors }}</div>
+    <div class="field{% if form.remarks.errors %} has-error{% endif %}"><label>Remarks</label>{{ form.remarks }}{{ form.remarks.errors }}</div>
+    <button type="submit">Save Payment</button>
+    <a href="{% url 'admin_suppliers' %}" style="text-decoration:none; background:#e4e9ef; color:#333; padding:10px 18px; border-radius:6px; font-weight:600;">Cancel</a>
+  </form>
+</div>
+
+{% endblock %}

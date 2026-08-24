@@ -1,0 +1,59 @@
+﻿{% extends "base.html" %}
+{% block title %}Sales - {{ COMPANY_NAME }}{% endblock %}
+{% block content %}
+
+<h2>Sales
+  <button onclick="window.print()" style="float:right;font-size:0.85em;">Print</button>
+</h2>
+
+<form method="get" class="inline" style="margin-bottom:16px;">
+  <div class="field"><label>From</label><input type="date" name="date_from" value="{{ date_from }}"></div>
+  <div class="field"><label>To</label><input type="date" name="date_to" value="{{ date_to }}"></div>
+  <div class="field"><label>Payment</label>
+    <select name="payment">
+      <option value="">All</option>
+      {% for code, label in payment_choices %}
+      <option value="{{ code }}" {% if payment == code %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <button type="submit">Filter</button>
+  <a href="{% url 'admin_sales' %}" style="color:var(--red);padding:9px;">Clear</a>
+</form>
+
+<div class="grid">
+  <div class="stat"><div class="label">Total</div><div class="value">KES {{ summary.total }}</div></div>
+  <div class="stat"><div class="label">Cash</div><div class="value">KES {{ summary.cash }}</div></div>
+  <div class="stat"><div class="label">Mpesa</div><div class="value">KES {{ summary.mpesa }}</div></div>
+  <div class="stat"><div class="label">Credit</div><div class="value">KES {{ summary.credit }}</div></div>
+</div>
+
+<div class="card">
+  <table>
+    <thead><tr><th>Date</th><th>Item</th><th>Weight</th><th>Gross</th><th>Payment</th><th>Customer</th><th>Cashier</th><th></th></tr></thead>
+    <tbody>
+      {% for s in sales %}
+      <tr>
+        <td>{{ s.date }}</td>
+        <td>{{ s.item.name }}</td>
+        <td>{{ s.weight_kg }}</td>
+        <td>{{ s.gross }}</td>
+        <td><span class="badge {{ s.payment_method }}">{{ s.get_payment_method_display }}</span></td>
+        <td>{{ s.customer_name }}</td>
+        <td>{{ s.created_by }}</td>
+        <td>
+          <form method="post" onsubmit="return confirm('Delete this sale?')" style="display:inline">
+            {% csrf_token %}
+            <input type="hidden" name="sale_id" value="{{ s.pk }}">
+            <button type="submit" name="delete_sale" class="danger">Delete</button>
+          </form>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="8" class="empty">No sales found.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}

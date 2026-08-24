@@ -1,0 +1,53 @@
+﻿{% extends "base.html" %}
+{% block title %}Stock - {{ COMPANY_NAME }}{% endblock %}
+{% block content %}
+
+<h2>Stock</h2>
+
+<div class="date-nav">
+  <form method="get" style="display:flex; gap:8px; align-items:center;">
+    <input type="date" name="date" value="{{ date|date:'Y-m-d' }}" onchange="this.form.submit()">
+    {% if date != today %}<a href="?date={{ today|date:'Y-m-d' }}">Jump to today</a>{% endif %}
+  </form>
+</div>
+
+{% if has_negatives %}
+<div style="background:#fff3e0; border:1px solid #e65100; border-radius:8px; padding:14px 18px; margin-bottom:16px; color:#8c3800;">
+  <strong>Negative stock detected.</strong>
+  Opening stock for this day is lower than what was sold — likely because no stock count was entered for one or more previous days.
+  <br>To fix: enter the actual opening stock figures below, or click <em>Clear All to 0</em> to start fresh.
+</div>
+{% endif %}
+
+<div class="card">
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="date" value="{{ date|date:'Y-m-d' }}">
+    <table>
+      <thead><tr><th>Item</th><th>Opening (kg)</th><th>Sold (kg)</th><th>Remaining (kg)</th></tr></thead>
+      <tbody>
+        {% for s in stock_rows %}
+        <tr>
+          <td>{{ s.item.name }}</td>
+          <td>
+            <input type="number" name="opening_{{ s.pk }}" value="{{ s.opening_kg }}" step="0.001" min="0" style="width:120px;">
+          </td>
+          <td>{{ s.sold_kg }}</td>
+          <td style="{% if s.remaining_kg < 0 %}color:var(--red);font-weight:600;{% endif %}">{{ s.remaining_kg }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="4" class="empty">No items yet. Add items first.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <div style="display:flex; gap:10px; margin-top:12px; align-items:center;">
+      <button type="submit">Save Opening Stock</button>
+      <button type="submit" name="clear_stock" value="1" style="background:#666;" onclick="return confirm('Set ALL opening stock to 0 for {{ date|date:'j F Y' }}?')">Clear All to 0</button>
+      {% if date != today %}<a href="?date={{ today|date:'Y-m-d' }}" style="color:var(--blue);">Jump to today</a>{% endif %}
+    </div>
+  </form>
+</div>
+
+<p style="color:#888; font-size:0.85em;">Use the date picker at the top to go back and fix stock figures for any past day. Each day's opening stock is carried forward automatically — fixing the earliest missing day will cascade the correction forward.</p>
+
+{% endblock %}

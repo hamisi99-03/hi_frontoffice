@@ -1,0 +1,56 @@
+﻿{% extends "base.html" %}
+{% block title %}Users - {{ COMPANY_NAME }}{% endblock %}
+{% block content %}
+
+<h2>Users</h2>
+
+<div class="card">
+  <h3>Add Cashier</h3>
+  <form method="post" class="inline">
+    {% csrf_token %}
+    <div class="field"><label>Username</label><input type="text" name="username" required></div>
+    <div class="field"><label>Password</label><input type="password" name="password" required></div>
+    <button type="submit">Create Cashier</button>
+  </form>
+</div>
+
+{% if owners %}
+<div class="card">
+  <h3>Owners</h3>
+  <table>
+    <thead><tr><th>Username</th><th>Role</th></tr></thead>
+    <tbody>
+      {% for u in owners %}
+      <tr><td>{{ u.username }}</td><td>Admin</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+<div class="card">
+  <h3>Cashiers</h3>
+  <table>
+    <thead><tr><th>Username</th><th>Role</th><th></th></tr></thead>
+    <tbody>
+      {% for u in cashiers %}
+      <tr>
+        <td>{{ u.username }}</td>
+        <td>Cashier</td>
+        <td>
+          <form method="post" onsubmit="return confirm('Delete cashier {{ u.username }}?')">
+            {% csrf_token %}
+            <input type="hidden" name="user_id" value="{{ u.pk }}">
+            <input type="hidden" name="delete_user" value="1">
+            <button type="submit" class="danger">Delete</button>
+          </form>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="3" class="empty">No cashiers yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}

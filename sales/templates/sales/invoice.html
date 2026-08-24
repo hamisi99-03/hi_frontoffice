@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Invoice {{ invoice.number }} - {{ COMPANY_NAME }}</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif; background: #e9ecef; margin: 0; padding: 16px; color: #111; }
+  .toolbar {
+    max-width: 760px; margin: 0 auto 12px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+  }
+  .toolbar a { color: #2c5aa0; text-decoration: none; font-size: 0.9em; }
+  .toolbar .spacer { flex: 1; }
+  .btn {
+    display: inline-block; padding: 8px 14px; border-radius: 6px; cursor: pointer;
+    font-weight: 600; font-size: 0.9em; text-decoration: none; color: #fff; border: none;
+  }
+  .btn.print { background: #2c5aa0; }
+  .btn.pdf { background: #c0392b; }
+  .invoice {
+    max-width: 760px; margin: 0 auto; background: #fff; padding: 28px 30px;
+    border-radius: 6px; box-shadow: 0 2px 12px rgba(0,0,0,0.12); font-size: 14px;
+  }
+  .center { text-align: center; }
+  .brand { font-size: 22px; font-weight: 800; color: #1e3f73; }
+  .motto { font-style: italic; color: #2c5aa0; margin: 2px 0 4px; }
+  .addr { font-size: 12px; color: #555; }
+  .inv-band {
+    background: #1e3f73; color: #fff; text-align: center; font-weight: 700; font-size: 16px;
+    letter-spacing: 3px; padding: 8px; margin: 16px 0; border-radius: 3px;
+  }
+  .meta { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 16px; margin-bottom: 16px; }
+  .meta .k { font-weight: 700; color: #1e3f73; font-size: 11px; text-transform: uppercase; }
+  table { width: 100%; border-collapse: collapse; }
+  th { background: #2c5aa0; color: #fff; text-align: left; padding: 8px 10px; font-size: 11px; text-transform: uppercase; }
+  td { padding: 8px 10px; border-bottom: 1px solid #eef2f7; }
+  .r { text-align: right; }
+  .totals { width: 320px; margin-left: auto; margin-top: 12px; }
+  .totals td { border: none; padding: 4px 10px; }
+  .totals .due td { font-weight: 800; color: #a12727; font-size: 15px; }
+  .footer { text-align: center; margin-top: 28px; font-size: 12px; color: #555; }
+  @media print {
+    body { background: #fff; padding: 0; }
+    .toolbar { display: none; }
+    .invoice { box-shadow: none; border-radius: 0; max-width: none; padding: 10px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <a href="javascript:history.back()">&laquo; Back</a>
+  <span class="spacer"></span>
+  <a class="btn pdf" href="?name={{ invoice.customer_name|urlencode }}&download=pdf">Download PDF</a>
+  <button class="btn print" onclick="window.print()">Print</button>
+</div>
+
+<div class="invoice">
+  <div class="center">
+    <div class="brand">{{ COMPANY_NAME }}</div>
+    <div class="motto">"{{ COMPANY_MOTTO }}"</div>
+    <div class="addr">{{ COMPANY_ADDRESS }}<br>Tel: {{ COMPANY_PHONE }}</div>
+  </div>
+
+  <div class="inv-band">INVOICE</div>
+
+  <div class="meta">
+    <div>
+      <div class="k">Bill To</div>
+      <div>{{ invoice.customer_name }}</div>
+    </div>
+    <div>
+      <div class="k">Invoice No</div>
+      <div>{{ invoice.number }}</div>
+    </div>
+    <div>
+      <div class="k">Date</div>
+      <div>{{ invoice.date|date:"d/m/Y" }}</div>
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr><th>#</th><th>Date</th><th>Description</th><th class="r">Qty (kg)</th><th class="r">Unit Price</th><th class="r">Amount</th></tr>
+    </thead>
+    <tbody>
+      {% for sale in sales %}
+      <tr>
+        <td>{{ forloop.counter }}</td>
+        <td>{{ sale.date|date:"d/m/Y" }}</td>
+        <td>{{ sale.item.name }}</td>
+        <td class="r">{% if sale.weight_kg %}{{ sale.weight_kg }}{% else %}—{% endif %}</td>
+        <td class="r">{{ sale.item.price_per_kg }}</td>
+        <td class="r">{{ sale.gross|floatformat:2 }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <table class="totals">
+    <tr><td>Subtotal</td><td class="r">KES {{ total|floatformat:2 }}</td></tr>
+    <tr><td>Amount Paid</td><td class="r">KES {{ total_paid|floatformat:2 }}</td></tr>
+    <tr class="due"><td>Balance Due</td><td class="r">KES {{ balance|floatformat:2 }}</td></tr>
+  </table>
+
+  <div class="footer">
+    Goods once sold cannot be re-accepted.<br>
+    Thank you for shopping with {{ COMPANY_NAME }}.
+  </div>
+</div>
+
+</body>
+</html>

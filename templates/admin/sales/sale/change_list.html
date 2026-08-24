@@ -1,0 +1,13 @@
+{% extends "admin/change_list.html" %}
+
+{% block content %}
+{% if summary %}
+<div style="background:#2c5aa0; border-radius:8px; padding:16px 20px; margin-bottom:20px; color:white; display:flex; flex-wrap:wrap; gap:24px;">
+  <div><span style="opacity:0.75;">Total Sales</span><br><strong style="font-size:1.4em;">KES {{ summary.total|floatformat:2 }}</strong></div>
+  <div><span style="opacity:0.75;">Cash</span><br><strong style="font-size:1.4em;">KES {{ summary.cash|floatformat:2 }}</strong></div>
+  <div><span style="opacity:0.75;">Mpesa</span><br><strong style="font-size:1.4em;">KES {{ summary.mpesa|floatformat:2 }}</strong></div>
+  <div><span style="opacity:0.75;">Credit</span><br><strong style="font-size:1.4em;">KES {{ summary.credit|floatformat:2 }}</strong></div>
+</div>
+{% endif %}
+{{ block.super }}
+{% endblock %}

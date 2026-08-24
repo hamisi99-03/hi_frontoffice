@@ -1,0 +1,160 @@
+﻿{% extends "base.html" %}
+{% block title %}Credit Ledger - {{ COMPANY_NAME }}{% endblock %}
+{% block content %}
+
+<div class="card">
+  <h2>Credit Ledger</h2>
+  <div class="grid" style="max-width:260px">
+    <div class="stat"><div class="label">Total Outstanding</div><div class="value">KES {{ outstanding_total|floatformat:2 }}</div></div>
+  </div>
+  <form method="get" class="inline" style="margin-top:12px;">
+    <div class="field">
+      <label>Search Customer</label>
+      <input type="text" name="q" value="{{ q }}" placeholder="Name or CTP batch..." list="creditor-list">
+      <datalist id="creditor-list">
+        {% for name in creditor_names %}<option value="{{ name }}">{% endfor %}
+      </datalist>
+    </div>
+    <button type="submit">Search</button>
+    {% if q %}<a href="{% url 'credit_ledger' %}" style="color:var(--red);padding:9px;">Clear</a>{% endif %}
+  </form>
+</div>
+
+<div class="card">
+  <h3>Record a Payment</h3>
+  <form method="post" class="inline" onsubmit="disableSubmit(this)">
+    {% csrf_token %}
+    <div class="field"><label>Sale</label>{{ payment_form.sale }}{{ payment_form.sale.errors }}</div>
+    <div class="field"><label>Customer</label>{{ payment_form.customer_name }}{{ payment_form.customer_name.errors }}</div>
+    <datalist id="creditor-list-bottom">
+      {% for name in creditor_names %}<option value="{{ name }}">{% endfor %}
+    </datalist>
+    <div class="field"><label>CTP Batch</label>{{ payment_form.customer_ctp }}{{ payment_form.customer_ctp.errors }}
+      <datalist id="ctp-list-bottom">
+        {% for ctp in creditor_ctps %}<option value="{{ ctp }}">{% endfor %}
+      </datalist>
+    </div>
+    <div class="field"><label>Amount Paid</label>{{ payment_form.amount }}</div>
+    <div class="field"><label>Mode</label>{{ payment_form.payment_mode }}</div>
+    <div class="field"><label>Note</label>{{ payment_form.note }}</div>
+    <button type="submit">Record Payment</button>
+  </form>
+</div>
+
+{% for customer_name, data in customers %}
+<div class="card">
+  <h3>{{ customer_name }}
+    <span style="font-size:0.85em;color:#888;">{% if data.balance < 0 %}— overpaid KES {{ data.overpaid|floatformat:2 }}{% elif data.balance == 0 %}— settled{% else %}— owes KES {{ data.balance|floatformat:2 }}{% endif %}</span>
+    <a href="{% url 'invoice_customer' %}?name={{ customer_name|urlencode }}" style="float:right;font-size:0.85em;color:var(--green);margin-left:12px;">Invoice</a>
+    <a href="{% url 'receipt_customer' %}?name={{ customer_name|urlencode }}" style="float:right;font-size:0.85em;color:var(--blue);">Print Receipt</a>
+  </h3>
+  <table>
+    <thead><tr><th>Date</th><th>CTP</th><th>Item</th><th>Gross</th><th>Paid</th><th>Balance</th><th class="pay-col">Pay Now</th></tr></thead>
+    <tbody>
+      {% for sale in data.sales %}
+      <tr>
+        <td>{{ sale.date }}</td>
+        <td>{% if sale.customer_ctp %}{{ sale.customer_ctp }}{% else %}—{% endif %}</td>
+        <td>{{ sale.item.name }}</td>
+        <td>KES {{ sale.gross|floatformat:2 }}</td>
+        <td>KES {{ sale.total_paid|floatformat:2 }}</td>
+        <td {% if sale.balance > 0 %}style="color:var(--red);font-weight:600;"{% endif %}>
+          KES {{ sale.balance|floatformat:2 }}
+        </td>
+        <td class="pay-col">
+          {% if sale.balance > 0 %}
+          <form method="post" class="pay-inline" onsubmit="disableSubmit(this)">
+            {% csrf_token %}
+            <input type="hidden" name="sale" value="{{ sale.pk }}">
+            <input type="hidden" name="customer_name" value="{{ customer_name }}">
+            <input type="number" name="amount" step="0.01" min="1" max="{{ sale.balance }}" value="{{ sale.balance }}" class="pay-amt" title="Amount (KES)">
+            <select name="payment_mode" class="pay-mode">
+              {% for code, label in payment_mode_choices %}
+              <option value="{{ code }}">{{ label }}</option>
+              {% endfor %}
+            </select>
+            <input type="text" name="note" placeholder="Note" class="pay-note">
+            <button type="submit" class="pay-btn">Pay</button>
+          </form>
+          {% else %}
+          <span style="color:var(--green);font-weight:600;">Paid</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% if data.balance > 0 %}
+  <div class="settle-row">
+    <form method="post" class="settle-inline" onsubmit="return confirmSettle(this)">
+      {% csrf_token %}
+      <input type="hidden" name="customer_name" value="{{ customer_name }}">
+      <span class="settle-label">Settle with lump sum:</span>
+      <input type="number" name="settle_amount" step="0.01" min="0.01" value="{{ data.balance|floatformat:2 }}" class="settle-amt" title="Applies to oldest debts first">
+      <select name="payment_mode" class="settle-mode">
+        {% for code, label in payment_mode_choices %}
+        <option value="{{ code }}">{{ label }}</option>
+        {% endfor %}
+      </select>
+      <input type="text" name="note" placeholder="Note" class="settle-note">
+      <button type="submit" name="settle" value="1" class="settle-btn">Apply to debts</button>
+    </form>
+  </div>
+  {% endif %}
+</div>
+{% empty %}
+<div class="card"><p class="empty">No credit sales recorded yet.</p></div>
+{% endfor %}
+
+<div class="card">
+  <h3>Recent Payments</h3>
+  <table>
+    <thead><tr><th>Date</th><th>Customer</th><th>Sale</th><th>Amount</th><th>Mode</th><th>Note</th></tr></thead>
+    <tbody>
+      {% for p in payments %}
+      <tr>
+        <td>{{ p.date }}</td>
+        <td>{{ p.customer_name }}</td>
+        <td>{% if p.sale %}{{ p.sale.reference }} - {{ p.sale.item.name }}{% else %}-{% endif %}</td>
+        <td>KES {{ p.amount }}</td>
+        <td><span class="badge {{ p.payment_mode }}">{{ p.get_payment_mode_display }}</span></td>
+        <td>{{ p.note }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="6" class="empty">No payments recorded yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<style>
+  .pay-col { min-width: 340px; }
+  .pay-inline { display: flex; gap: 4px; align-items: center; }
+  .pay-amt { width: 90px; padding: 7px 8px; }
+  .pay-mode { width: 90px; padding: 7px 6px; font-size: 0.9em; }
+  .pay-note { width: 80px; padding: 7px 8px; }
+  .pay-btn { padding: 7px 12px; font-size: 0.85em; }
+  .settle-row { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--border); }
+  .settle-inline { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .settle-label { font-size: 0.9em; color: #555; font-weight: 600; }
+  .settle-amt { width: 110px; padding: 7px 8px; }
+  .settle-mode { width: 90px; padding: 7px 6px; font-size: 0.9em; }
+  .settle-note { width: 120px; padding: 7px 8px; }
+  .settle-btn { padding: 7px 12px; font-size: 0.85em; background: var(--green); }
+  .settle-btn:hover { background: var(--blue-dark); }
+  .badge.CASH { background: #d9f2e3; color: #146c2e; }
+  .badge.MPESA { background: #fdecd2; color: #96590a; }
+</style>
+
+<script>
+  function disableSubmit(form) {
+    var btn = form.querySelector('button[type="submit"]');
+    if (btn) btn.disabled = true;
+  }
+  function confirmSettle(form) {
+    var amt = form.querySelector('.settle-amt').value;
+    return confirm('Apply KES ' + amt + ' to this customer\'s oldest debts?');
+  }
+</script>
+
+{% endblock %}

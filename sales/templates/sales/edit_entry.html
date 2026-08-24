@@ -1,0 +1,24 @@
+﻿{% extends "base.html" %}
+{% block title %}{{ title }} - {{ COMPANY_NAME }}{% endblock %}
+{% block content %}
+
+<div class="card">
+  <h2>{{ title }}</h2>
+  <form method="post" class="inline">
+    {% csrf_token %}
+    {% for field in form %}
+    <div class="field{% if field.errors %} has-error{% endif %}">
+      <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+      {{ field }}
+      {{ field.errors }}
+    </div>
+    {% endfor %}
+    {% if form.non_field_errors %}<div class="errorlist" style="flex-basis:100%;">{{ form.non_field_errors }}</div>{% endif %}
+    <div style="flex-basis:100%; display:flex; gap:10px; margin-top:8px;">
+      <button type="submit">Save Changes</button>
+      <a href="{{ cancel_url }}" style="text-decoration:none; background:#e4e9ef; color:#333; padding:10px 18px; border-radius:6px; font-weight:600;">Cancel</a>
+    </div>
+  </form>
+</div>
+
+{% endblock %}

@@ -1,0 +1,51 @@
+﻿{% extends "base.html" %}
+{% block title %}Items - {{ COMPANY_NAME }}{% endblock %}
+{% block content %}
+
+<h2>Items &amp; Prices</h2>
+
+<div class="card">
+  <h3>Add New Item</h3>
+  <form method="post" class="inline">
+    {% csrf_token %}
+    <div class="field"><label>Name</label>{{ form.name }}</div>
+    <div class="field"><label>Price (KES/kg)</label>{{ form.price_per_kg }}</div>
+    <button type="submit">Add Item</button>
+  </form>
+</div>
+
+<div class="card">
+  <table>
+    <thead><tr><th>Name</th><th>Price/kg</th><th>Active</th><th></th></tr></thead>
+    <tbody>
+      {% for item in items %}
+      <tr>
+        <form method="post" style="display:contents">
+          {% csrf_token %}
+          <input type="hidden" name="item_id" value="{{ item.pk }}">
+          <td>
+            <input type="text" name="name" value="{{ item.name }}" style="width:auto; min-width:120px;" required>
+          </td>
+          <td>
+            <input type="number" name="price_per_kg" value="{{ item.price_per_kg }}" step="0.01" style="width:100px;" required>
+          </td>
+          <td>
+            <select name="active" style="width:auto;">
+              <option value="1" {% if item.active %}selected{% endif %}>Yes</option>
+              <option value="" {% if not item.active %}selected{% endif %}>No</option>
+            </select>
+          </td>
+          <td style="display:flex; gap:6px;">
+            <button type="submit">Save</button>
+            <button type="submit" name="delete" value="1" class="danger" onclick="return confirm('Delete {{ item.name }}?')">Delete</button>
+          </td>
+        </form>
+      </tr>
+      {% empty %}
+      <tr><td colspan="4" class="empty">No items yet. Add your first item above.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}

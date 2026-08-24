@@ -1,0 +1,11 @@
+{% extends "admin/change_list.html" %}
+
+{% block content %}
+{% if total_expenses %}
+<div style="background:#c0392b; border-radius:8px; padding:14px 20px; margin-bottom:20px; color:white;">
+  <span style="opacity:0.75;">Total Expenses</span><br>
+  <strong style="font-size:1.4em;">KES {{ total_expenses|floatformat:2 }}</strong>
+</div>
+{% endif %}
+{{ block.super }}
+{% endblock %}
