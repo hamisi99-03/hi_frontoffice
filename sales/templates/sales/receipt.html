@@ -45,6 +45,7 @@
   .meta { margin: 4px 0; }
   .meta .k { font-weight: 700; }
   .footer { text-align: center; font-size: 11px; margin-top: 10px; }
+  @page { margin: 0; }
   @media print {
     body { background: #fff; padding: 0; }
     .toolbar { display: none; }
@@ -112,6 +113,12 @@
     Thank you for shopping with us.
   </div>
 </div>
+
+<script>
+  window.addEventListener('load', function () {
+    setTimeout(function () { window.print(); }, 400);
+  });
+</script>
 
 </body>
 </html>
