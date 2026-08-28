@@ -42,7 +42,7 @@
     </table>
     <div style="display:flex; gap:10px; margin-top:12px; align-items:center;">
       <button type="submit">Save Opening Stock</button>
-      <button type="submit" name="clear_stock" value="1" style="background:#666;" onclick="return confirm('Set ALL opening stock to 0 for {{ date|date:'j F Y' }}?')">Clear All to 0</button>
+      <button type="submit" name="clear_stock" value="1" class="secondary" onclick="return confirm('Set ALL opening stock to 0 for {{ date|date:'j F Y' }}?')">Clear All to 0</button>
       {% if date != today %}<a href="?date={{ today|date:'Y-m-d' }}" style="color:var(--primary);">Jump to today</a>{% endif %}
     </div>
   </form>

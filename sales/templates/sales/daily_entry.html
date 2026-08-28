@@ -5,22 +5,22 @@
 <div class="date-nav">
   <form method="get" style="display:flex; gap:8px; align-items:center;">
     <input type="date" name="date" value="{{ date|date:'Y-m-d' }}" onchange="this.form.submit()">
-    {% if date != today %}<a href="?date={{ today|date:'Y-m-d' }}">Jump to today</a>{% endif %}
+    {% if date != today %}<a href="?date={{ today|date:'Y-m-d' }}" class="today-link">Jump to today</a>{% endif %}
   </form>
-  <button type="button" onclick="window.location.reload()" style="margin-left:auto;">Refresh</button>
+  <button type="button" onclick="window.location.reload()" class="secondary spacer-btn">Refresh</button>
 </div>
 
 <div class="card">
   <h2>Sales &mdash; {{ date|date:"l, j F Y" }}</h2>
 
   <div class="grid">
-    <div class="stat"><div class="label">Cash</div><div class="value">{{ totals_by_method.CASH }}</div></div>
-    <div class="stat"><div class="label">Mpesa</div><div class="value">{{ totals_by_method.MPESA }}</div></div>
-    <div class="stat"><div class="label">Credit</div><div class="value">{{ totals_by_method.CREDIT }}</div></div>
-    <div class="stat"><div class="label">Credit Paid (Cash)</div><div class="value">{{ credit_paid_cash }}</div></div>
-    <div class="stat"><div class="label">Credit Paid (Mpesa)</div><div class="value">{{ credit_paid_mpesa }}</div></div>
-    <div class="stat"><div class="label">Svc Cash</div><div class="value">{{ services_cash }}</div></div>
-    <div class="stat"><div class="label">Svc Mpesa</div><div class="value">{{ services_mpesa }}</div></div>
+    <div class="stat stat--cash"><div class="label">Cash</div><div class="value">{{ totals_by_method.CASH }}</div></div>
+    <div class="stat stat--mpesa"><div class="label">Mpesa</div><div class="value">{{ totals_by_method.MPESA }}</div></div>
+    <div class="stat stat--credit"><div class="label">Credit</div><div class="value">{{ totals_by_method.CREDIT }}</div></div>
+    <div class="stat stat--cash"><div class="label">Credit Paid (Cash)</div><div class="value">{{ credit_paid_cash }}</div></div>
+    <div class="stat stat--mpesa"><div class="label">Credit Paid (Mpesa)</div><div class="value">{{ credit_paid_mpesa }}</div></div>
+    <div class="stat stat--cash"><div class="label">Svc Cash</div><div class="value">{{ services_cash }}</div></div>
+    <div class="stat stat--mpesa"><div class="label">Svc Mpesa</div><div class="value">{{ services_mpesa }}</div></div>
     <div class="stat"><div class="label">Day Total</div><div class="value">{{ day_total }}</div></div>
     <div class="stat net"><div class="label">Net Cash in Drawer</div><div class="value">{{ net_cash }}</div></div>
   </div>
@@ -77,8 +77,8 @@
   </form>
   {% if form.non_field_errors %}<ul class="errorlist"><li>{{ form.non_field_errors.0 }}</li></ul>{% endif %}
 
-  <div id="bulk-section" style="display:none; margin-top:16px; padding:16px; background:#fbf6f5; border:2px dashed var(--border); border-radius:10px;">
-    <h3 style="margin-top:0;">Bulk Sale Entry</h3>
+  <div id="bulk-section" class="panel" style="display:none;">
+    <h3>Bulk Sale Entry</h3>
     {% if bulk_errors %}
     <ul class="errorlist" style="margin-bottom:12px;">
       {% for err in bulk_errors %}<li>{{ err }}</li>{% endfor %}
@@ -135,16 +135,16 @@
           </tr>
         </tbody>
         <tfoot>
-          <tr style="background:var(--primary-soft);">
-            <td colspan="2" style="text-align:right;font-weight:700;">Grand Total:</td>
-            <td id="bulk-grand-total" style="font-weight:700;">—</td>
+          <tr class="bulk-total-row">
+            <td colspan="2" class="bulk-total-label">Grand Total:</td>
+            <td id="bulk-grand-total" class="bulk-total-value">—</td>
             <td colspan="6"></td>
           </tr>
         </tfoot>
       </table>
-      <div style="margin-top:10px; display:flex; gap:10px;">
-        <button type="button" id="add-row-btn" onclick="addBulkRow()">+ Add Row</button>
-        <button type="submit" name="add_bulk" value="1" style="background:var(--green);">Save All Sales</button>
+      <div class="bulk-form-actions">
+        <button type="button" id="add-row-btn" onclick="addBulkRow()" class="secondary">+ Add Row</button>
+        <button type="submit" name="add_bulk" value="1" class="success">Save All Sales</button>
       </div>
     </form>
   </div>
@@ -285,7 +285,7 @@
     {% if bulk_errors %}document.getElementById('bulk-section').style.display = 'block';{% endif %}
   </script>
 
-  <form method="get" class="inline" style="margin-bottom:12px; align-items:center;">
+  <form method="get" class="inline filter-row">
     <input type="hidden" name="date" value="{{ date|date:'Y-m-d' }}">
     <div class="field">
       <label>Show</label>
@@ -296,11 +296,11 @@
         {% endfor %}
       </select>
     </div>
-    {% if filter_payment %}<a href="?date={{ date|date:'Y-m-d' }}" style="color:var(--red);padding:8px;">Clear</a>{% endif %}
+    {% if filter_payment %}<a href="?date={{ date|date:'Y-m-d' }}" class="clear-filter-link">Clear</a>{% endif %}
   </form>
 
-  <div style="margin-bottom:12px;">
-    <button type="button" onclick="printSelected()">Print Selected Receipt</button>
+  <div class="table-toolbar">
+    <button type="button" onclick="printSelected()" class="secondary">Print Selected Receipt</button>
   </div>
 
   <script>
@@ -338,11 +338,13 @@
         <td>{{ sale.customer_name }}</td>
         <td>{{ sale.remarks }}</td>
         <td>
-          <a href="{% url 'receipt_sale' sale.pk %}" target="_blank" style="color:var(--green); margin-right:8px; font-size:0.85em; font-weight:600; text-decoration:none;">Receipt</a>
-          <a href="{% url 'edit_sale' sale.pk %}" style="color:var(--primary); margin-right:8px; font-size:0.85em; font-weight:600; text-decoration:none;">Edit</a>
-          <form method="post" action="{% url 'delete_sale' sale.pk %}?filter_payment={{ filter_payment }}" onsubmit="return confirm('Delete this sale?')" style="display:inline">
-            {% csrf_token %}<button type="submit" class="danger">Delete</button>
-          </form>
+          <div class="row-actions">
+            <a href="{% url 'receipt_sale' sale.pk %}" target="_blank" class="link-action receipt">Receipt</a>
+            <a href="{% url 'edit_sale' sale.pk %}" class="link-action edit">Edit</a>
+            <form method="post" action="{% url 'delete_sale' sale.pk %}?filter_payment={{ filter_payment }}" onsubmit="return confirm('Delete this sale?')" style="display:inline">
+              {% csrf_token %}<button type="submit" class="danger">Delete</button>
+            </form>
+          </div>
         </td>
       </tr>
       {% empty %}
@@ -377,10 +379,12 @@
         <td>{{ exp.amount }}</td>
         <td><span class="badge {{ exp.payment_method }}">{{ exp.get_payment_method_display }}</span></td>
         <td>
-          <a href="{% url 'edit_expense' exp.pk %}" style="color:var(--primary); margin-right:8px; font-size:0.85em; font-weight:600; text-decoration:none;">Edit</a>
-          <form method="post" action="{% url 'delete_expense' exp.pk %}?filter_payment={{ filter_payment }}" onsubmit="return confirm('Delete this expense?')" style="display:inline">
-            {% csrf_token %}<button type="submit" class="danger">Delete</button>
-          </form>
+          <div class="row-actions">
+            <a href="{% url 'edit_expense' exp.pk %}" class="link-action edit">Edit</a>
+            <form method="post" action="{% url 'delete_expense' exp.pk %}?filter_payment={{ filter_payment }}" onsubmit="return confirm('Delete this expense?')" style="display:inline">
+              {% csrf_token %}<button type="submit" class="danger">Delete</button>
+            </form>
+          </div>
         </td>
       </tr>
       {% empty %}
@@ -431,10 +435,12 @@
         <td>{{ svc.amount }}</td>
         <td>{{ svc.get_payment_method_display }}</td>
         <td>
-          <a href="{% url 'edit_other_service' svc.pk %}" style="color:var(--primary); margin-right:8px; font-size:0.85em; font-weight:600; text-decoration:none;">Edit</a>
-          <form method="post" action="{% url 'delete_other_service' svc.pk %}?filter_payment={{ filter_payment }}" onsubmit="return confirm('Delete this service?')" style="display:inline">
-            {% csrf_token %}<button type="submit" class="danger">Delete</button>
-          </form>
+          <div class="row-actions">
+            <a href="{% url 'edit_other_service' svc.pk %}" class="link-action edit">Edit</a>
+            <form method="post" action="{% url 'delete_other_service' svc.pk %}?filter_payment={{ filter_payment }}" onsubmit="return confirm('Delete this service?')" style="display:inline">
+              {% csrf_token %}<button type="submit" class="danger">Delete</button>
+            </form>
+          </div>
         </td>
       </tr>
       {% empty %}
@@ -465,16 +471,16 @@
 <div class="card" id="close-card" style="display:none;">
   <h2>Close Day &mdash; {{ date|date:"l, j F Y" }}</h2>
   <div class="grid">
-    <div class="stat"><div class="label">Cash Sales</div><div class="value">KES {{ totals_by_method.CASH }}</div></div>
-    <div class="stat"><div class="label">Mpesa</div><div class="value">KES {{ totals_by_method.MPESA }}</div></div>
-    <div class="stat"><div class="label">Credit</div><div class="value">KES {{ totals_by_method.CREDIT }}</div></div>
-    <div class="stat"><div class="label">Credit Paid (Cash)</div><div class="value">KES {{ credit_paid_cash }}</div></div>
-    <div class="stat"><div class="label">Credit Paid (Mpesa)</div><div class="value">KES {{ credit_paid_mpesa }}</div></div>
-    <div class="stat"><div class="label">Services (Cash)</div><div class="value">KES {{ services_cash }}</div></div>
-    <div class="stat"><div class="label">Services (Mpesa)</div><div class="value">KES {{ services_mpesa }}</div></div>
+    <div class="stat stat--cash"><div class="label">Cash Sales</div><div class="value">KES {{ totals_by_method.CASH }}</div></div>
+    <div class="stat stat--mpesa"><div class="label">Mpesa</div><div class="value">KES {{ totals_by_method.MPESA }}</div></div>
+    <div class="stat stat--credit"><div class="label">Credit</div><div class="value">KES {{ totals_by_method.CREDIT }}</div></div>
+    <div class="stat stat--cash"><div class="label">Credit Paid (Cash)</div><div class="value">KES {{ credit_paid_cash }}</div></div>
+    <div class="stat stat--mpesa"><div class="label">Credit Paid (Mpesa)</div><div class="value">KES {{ credit_paid_mpesa }}</div></div>
+    <div class="stat stat--cash"><div class="label">Services (Cash)</div><div class="value">KES {{ services_cash }}</div></div>
+    <div class="stat stat--mpesa"><div class="label">Services (Mpesa)</div><div class="value">KES {{ services_mpesa }}</div></div>
     <div class="stat"><div class="label">Day Total</div><div class="value">KES {{ day_total }}</div></div>
-    <div class="stat"><div class="label">Expenses (Cash)</div><div class="value">KES {{ expense_cash }}</div></div>
-    <div class="stat"><div class="label">Expenses (Mpesa)</div><div class="value">KES {{ expense_mpesa }}</div></div>
+    <div class="stat stat--expense"><div class="label">Expenses (Cash)</div><div class="value">KES {{ expense_cash }}</div></div>
+    <div class="stat stat--expense"><div class="label">Expenses (Mpesa)</div><div class="value">KES {{ expense_mpesa }}</div></div>
     <div class="stat net"><div class="label">Net Cash</div><div class="value">KES {{ net_cash }}</div></div>
   </div>
 
@@ -495,11 +501,11 @@
     </tbody>
   </table>
 
-  <button onclick="window.print()" style="margin-top:12px;">Print Close Summary</button>
+  <button onclick="window.print()" class="secondary print-summary-btn">Print Close Summary</button>
 </div>
 
-<div style="text-align:center; margin:16px 0;">
-  <button id="close-toggle" onclick="var c=document.getElementById('close-card');var b=document.getElementById('close-toggle');if(c.style.display==='none'){c.style.display='block';b.textContent='Hide Summary';}else{c.style.display='none';b.textContent='Close Day';}">Close Day</button>
+<div class="close-toggle-wrap">
+  <button id="close-toggle" class="secondary" onclick="var c=document.getElementById('close-card');var b=document.getElementById('close-toggle');if(c.style.display==='none'){c.style.display='block';b.textContent='Hide Summary';}else{c.style.display='none';b.textContent='Close Day';}">Close Day</button>
 </div>
 
 <style>
@@ -507,7 +513,10 @@
   .sale-form .field { min-width: 0; }
   .sale-actions { grid-column: 1 / -1; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-top: 4px; }
   .subtotal-hint { color: var(--primary-dark); font-weight: 600; font-size: 0.9em; }
-  button.secondary { background: var(--green); }
+  .bulk-total-row { background: var(--primary-soft); }
+  .bulk-total-label { text-align: right; font-weight: 700; }
+  .bulk-total-value { font-weight: 700; font-family: var(--font-display); }
+  .bulk-form-actions { margin-top: 14px; display: flex; gap: 10px; }
   @media (max-width: 920px) {
     .sale-form { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   }

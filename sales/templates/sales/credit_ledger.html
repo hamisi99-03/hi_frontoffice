@@ -16,7 +16,7 @@
       </datalist>
     </div>
     <button type="submit">Search</button>
-    {% if q %}<a href="{% url 'credit_ledger' %}" style="color:var(--red);padding:9px;">Clear</a>{% endif %}
+    {% if q %}<a href="{% url 'credit_ledger' %}" class="clear-filter-link">Clear</a>{% endif %}
   </form>
 </div>
 
@@ -133,15 +133,15 @@
   .pay-amt { width: 90px; padding: 7px 8px; }
   .pay-mode { width: 90px; padding: 7px 6px; font-size: 0.9em; }
   .pay-note { width: 80px; padding: 7px 8px; }
-  .pay-btn { padding: 7px 12px; font-size: 0.85em; }
+  .pay-btn { padding: 0 12px; line-height: 30px; font-size: 0.85em; }
   .settle-row { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--border); }
   .settle-inline { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
   .settle-label { font-size: 0.9em; color: #555; font-weight: 600; }
   .settle-amt { width: 110px; padding: 7px 8px; }
   .settle-mode { width: 90px; padding: 7px 6px; font-size: 0.9em; }
   .settle-note { width: 120px; padding: 7px 8px; }
-  .settle-btn { padding: 7px 12px; font-size: 0.85em; background: var(--green); }
-  .settle-btn:hover { background: var(--primary-dark); }
+  .settle-btn { padding: 0 14px; line-height: 30px; font-size: 0.85em; background: var(--green); border-color: #0d5a38; box-shadow: #0d5a38 3px 3px 0 0; }
+  .settle-btn:hover { background: #14704a; }
   .badge.CASH { background: #d9f2e3; color: #146c2e; }
   .badge.MPESA { background: #fdecd2; color: #96590a; }
 </style>

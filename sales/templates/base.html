@@ -25,6 +25,7 @@
     --shadow-sm: 0 1px 2px rgba(90, 30, 20, 0.06);
     --shadow: 0 8px 24px rgba(90, 30, 20, 0.09);
     --radius: 12px;
+    --font-display: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", Arial, sans-serif;
   }
   * { box-sizing: border-box; }
   html { -webkit-text-size-adjust: 100%; }
@@ -113,6 +114,13 @@
     margin-bottom: 20px;
     box-shadow: var(--shadow-sm);
   }
+  .panel {
+    background: #fbf6f5;
+    border: 2px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 18px;
+    margin-top: 16px;
+  }
   h1, h2, h3 { margin-top: 0; color: var(--text); letter-spacing: -0.01em; }
   h1 { font-size: 1.7em; }
   h2 { font-size: 1.35em; }
@@ -145,9 +153,17 @@
   }
   .stat:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
   .stat .label { font-size: 0.78em; color: var(--muted); text-transform: uppercase; letter-spacing: 0.03em; }
-  .stat .value { font-size: 1.6em; font-weight: 800; color: var(--primary-dark); }
+  .stat .value { font-size: 1.6em; font-weight: 800; color: var(--primary-dark); font-variant-numeric: tabular-nums; }
   .stat.net { background: linear-gradient(180deg, #fff 0%, var(--green-soft) 100%); border-color: #bfe3d0; }
   .stat.net .value { color: var(--green); }
+  .stat--cash { background: linear-gradient(180deg, #fff 0%, var(--green-soft) 100%); border-color: #bfe3d0; }
+  .stat--cash .value { color: var(--green); }
+  .stat--mpesa { background: linear-gradient(180deg, #fff 0%, #fdf1e0 100%); border-color: #f3dcb8; }
+  .stat--mpesa .value { color: var(--amber); }
+  .stat--credit { background: linear-gradient(180deg, #fff 0%, var(--red-soft) 100%); border-color: #f5c6c6; }
+  .stat--credit .value { color: var(--red); }
+  .stat--expense { background: linear-gradient(180deg, #fff 0%, #f1eef0 100%); border-color: #e2dcde; }
+  .stat--expense .value { color: var(--muted); }
 
   /* ---------- Forms ---------- */
   form.inline { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
@@ -164,23 +180,64 @@
   .field { min-width: 150px; }
 
   button {
-    background: linear-gradient(180deg, var(--primary) 0%, var(--primary-dark) 100%);
-    color: #fff; border: none; border-radius: 8px;
-    padding: 10px 18px; font-size: 1em; cursor: pointer; font-weight: 600;
-    transition: transform 0.1s ease, box-shadow 0.15s ease, filter 0.15s ease;
-    box-shadow: var(--shadow-sm);
+    background: var(--primary);
+    color: #fff;
+    border: 2px solid var(--primary-deep);
+    border-radius: 30px;
+    box-shadow: var(--primary-deep) 4px 4px 0 0;
+    padding: 0 22px;
+    line-height: 44px;
+    font-size: 1em;
+    cursor: pointer;
+    font-weight: 700;
+    transition: transform 0.1s ease, box-shadow 0.1s ease, background 0.15s ease;
+    -webkit-user-select: none;
+    user-select: none;
+    touch-action: manipulation;
   }
-  button:hover { filter: brightness(1.06); box-shadow: var(--shadow); }
-  button:active { transform: translateY(1px); }
+  button:hover { background: var(--primary-dark); }
+  button:active { box-shadow: var(--primary-deep) 2px 2px 0 0; transform: translate(2px, 2px); }
   button:focus-visible { outline: 3px solid rgba(180, 35, 24, 0.35); outline-offset: 2px; }
-  button.danger { background: linear-gradient(180deg, #e0453a 0%, var(--red) 100%); padding: 6px 11px; font-size: 0.85em; }
-  button.secondary { background: linear-gradient(180deg, #238a58 0%, var(--green) 100%); }
-  .btn-ghost {
-    display: inline-block; background: #f1e8e6; color: #5a2320; padding: 10px 18px;
-    border-radius: 8px; font-weight: 600; text-decoration: none; border: 1px solid #e3d8d6;
-    transition: background 0.15s ease;
+  button.danger {
+    background: var(--red);
+    border-color: #9a120a;
+    box-shadow: #9a120a 3px 3px 0 0;
+    padding: 0 12px;
+    line-height: 28px;
+    font-size: 0.85em;
   }
-  .btn-ghost:hover { background: #e8dcd9; }
+  button.danger:hover { background: #c03127; }
+  button.danger:active { box-shadow: #9a120a 1px 1px 0 0; transform: translate(1px, 1px); }
+  button.secondary {
+    background: #fbeee0;
+    color: #422800;
+    border: 2px solid #422800;
+    box-shadow: #422800 4px 4px 0 0;
+  }
+  button.secondary:hover { background: #fff; }
+  button.success {
+    background: var(--green);
+    border-color: #0d5a38;
+    box-shadow: #0d5a38 4px 4px 0 0;
+  }
+  button.success:hover { background: #14704a; }
+  .btn-ghost {
+    display: inline-block;
+    background: #fbeee0;
+    color: #422800;
+    border: 2px solid #422800;
+    border-radius: 30px;
+    box-shadow: #422800 4px 4px 0 0;
+    padding: 0 20px;
+    line-height: 40px;
+    font-weight: 700;
+    text-decoration: none;
+    transition: transform 0.1s ease, box-shadow 0.1s ease, background 0.15s ease;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  .btn-ghost:hover { background: #fff; }
+  .btn-ghost:active { box-shadow: #422800 2px 2px 0 0; transform: translate(2px, 2px); }
 
   .errorlist { color: var(--red); font-size: 0.85em; list-style: none; padding: 0; margin: 4px 0 0; }
   .field.has-error input,
@@ -199,6 +256,26 @@
   .badge.CASH { background: var(--green-soft); color: #146c2e; }
   .badge.MPESA { background: #fdecd2; color: #96590a; }
   .badge.CREDIT { background: var(--red-soft); color: #a12727; }
+
+  /* ---------- Row action links ---------- */
+  .row-actions { display: flex; align-items: center; gap: 10px; white-space: nowrap; }
+  .link-action {
+    font-size: 0.85em; font-weight: 600; text-decoration: none; cursor: pointer;
+  }
+  .link-action:hover { text-decoration: underline; }
+  .link-action.receipt { color: var(--green); }
+  .link-action.edit { color: var(--primary); }
+
+  /* ---------- Utilities ---------- */
+  .table-toolbar { margin-bottom: 8px; }
+  .filter-row { align-items: center; margin-bottom: 4px; }
+  .print-summary-btn { margin-top: 14px; }
+  .spacer-btn { margin-left: auto; }
+  .today-link { text-decoration: none; background: #f1e8e6; padding: 7px 13px; border-radius: 8px; color: #5a2320; font-weight: 600; border: 1px solid #e3d8d6; }
+  .today-link:hover { background: #e8dcd9; }
+  .clear-filter-link { color: var(--red); padding: 8px; font-weight: 600; text-decoration: none; font-size: 0.88em; }
+  .clear-filter-link:hover { text-decoration: underline; }
+  .close-toggle-wrap { text-align: center; margin: 22px 0; }
 
   /* ---------- Messages / Flash ---------- */
   .messages {

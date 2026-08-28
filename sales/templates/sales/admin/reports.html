@@ -9,14 +9,14 @@
   <div class="field"><label>To</label><input type="date" name="date_to" value="{{ date_to }}"></div>
   <button type="submit">Generate</button>
   {% if date_from or date_to %}
-  <a href="{% url 'admin_reports' %}" style="color:var(--red);padding:9px;">Clear</a>
+  <a href="{% url 'admin_reports' %}" class="clear-filter-link">Clear</a>
   {% endif %}
 </form>
 
 {% if date_from or date_to %}
 <div style="text-align:right; margin-bottom:8px;">
-  <a href="{% url 'admin_reports_export' %}?{{ query_string }}" style="text-decoration:none; background:var(--green); color:white; padding:8px 16px; border-radius:6px; font-weight:600;">Download CSV</a>
-  <button onclick="window.print()" style="margin-left:8px;">Print</button>
+  <a href="{% url 'admin_reports_export' %}?{{ query_string }}" style="display:inline-block; background:var(--green); color:#fff; border:2px solid #0d5a38; border-radius:30px; box-shadow:#0d5a38 4px 4px 0 0; padding:0 20px; line-height:40px; font-weight:700; text-decoration:none;">Download CSV</a>
+  <button onclick="window.print()" class="secondary" style="margin-left:8px;">Print</button>
 </div>
 {% endif %}
 
