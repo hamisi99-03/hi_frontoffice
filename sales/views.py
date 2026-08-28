@@ -49,6 +49,9 @@ def _receipt_context(sales, doc_type, customer="", receipt_no=""):
         "date": sales[0].date if sales else timezone.localdate(),
         "total": total,
         "methods": methods,
+        "total_paid": None,
+        "balance": None,
+        "show_balance": False,
     }
 
 
@@ -79,7 +82,12 @@ def receipt_customer(request):
     if not sales.exists():
         messages.error(request, f"No sales found for {name}.")
         return redirect("credit_ledger")
-    ctx = _receipt_context(list(sales), "SALES RECEIPT", customer=name)
+    sales_list = list(sales)
+    ctx = _receipt_context(sales_list, "SALES RECEIPT", customer=name)
+    total_paid = sum((s.total_paid for s in sales_list), Decimal("0"))
+    ctx["total_paid"] = total_paid
+    ctx["balance"] = ctx["total"] - total_paid
+    ctx["show_balance"] = True
     return render(request, "sales/receipt.html", ctx)
 
 

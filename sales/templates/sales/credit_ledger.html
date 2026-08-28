@@ -46,7 +46,7 @@
   <h3>{{ customer_name }}
     <span style="font-size:0.85em;color:#888;">{% if data.balance < 0 %}— overpaid KES {{ data.overpaid|floatformat:2 }}{% elif data.balance == 0 %}— settled{% else %}— owes KES {{ data.balance|floatformat:2 }}{% endif %}</span>
     <a href="{% url 'invoice_customer' %}?name={{ customer_name|urlencode }}" style="float:right;font-size:0.85em;color:var(--green);margin-left:12px;">Invoice</a>
-    <a href="{% url 'receipt_customer' %}?name={{ customer_name|urlencode }}" style="float:right;font-size:0.85em;color:var(--blue);">Print Receipt</a>
+    <a href="{% url 'receipt_customer' %}?name={{ customer_name|urlencode }}" style="float:right;font-size:0.85em;color:var(--primary);">Print Receipt</a>
   </h3>
   <table>
     <thead><tr><th>Date</th><th>CTP</th><th>Item</th><th>Gross</th><th>Paid</th><th>Balance</th><th class="pay-col">Pay Now</th></tr></thead>
@@ -141,7 +141,7 @@
   .settle-mode { width: 90px; padding: 7px 6px; font-size: 0.9em; }
   .settle-note { width: 120px; padding: 7px 8px; }
   .settle-btn { padding: 7px 12px; font-size: 0.85em; background: var(--green); }
-  .settle-btn:hover { background: var(--blue-dark); }
+  .settle-btn:hover { background: var(--primary-dark); }
   .badge.CASH { background: #d9f2e3; color: #146c2e; }
   .badge.MPESA { background: #fdecd2; color: #96590a; }
 </style>

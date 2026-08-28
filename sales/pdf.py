@@ -197,6 +197,6 @@ def build_invoice_pdf(invoice, sales, total, total_paid, balance):
 
     response = HttpResponse(pdf, content_type="application/pdf")
     response["Content-Disposition"] = (
-        f'attachment; filename="invoice_{invoice.number}_{invoice.customer_name}.pdf"'
+        f'inline; filename="invoice_{invoice.number}_{invoice.customer_name}.pdf"'
     )
     return response

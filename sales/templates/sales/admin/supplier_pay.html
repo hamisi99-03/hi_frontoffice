@@ -17,7 +17,7 @@
     <div class="field{% if form.payment_mode.errors %} has-error{% endif %}"><label>Payment Mode</label>{{ form.payment_mode }}{{ form.payment_mode.errors }}</div>
     <div class="field{% if form.remarks.errors %} has-error{% endif %}"><label>Remarks</label>{{ form.remarks }}{{ form.remarks.errors }}</div>
     <button type="submit">Save Payment</button>
-    <a href="{% url 'admin_suppliers' %}" style="text-decoration:none; background:#e4e9ef; color:#333; padding:10px 18px; border-radius:6px; font-weight:600;">Cancel</a>
+    <a href="{% url 'admin_suppliers' %}" class="btn-ghost">Cancel</a>
   </form>
 </div>
 

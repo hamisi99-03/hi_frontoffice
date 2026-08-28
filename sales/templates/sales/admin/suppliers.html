@@ -42,7 +42,7 @@
         <td>{{ s.remarks }}</td>
         <td style="white-space:nowrap;">
           {% if s.balance > 0 %}<a href="{% url 'admin_supplier_pay' s.pk %}" style="color:var(--green); margin-right:8px; font-size:0.85em; font-weight:600; text-decoration:none;">Pay</a>{% endif %}
-          <a href="{% url 'admin_supplier_edit' s.pk %}" style="color:var(--blue); margin-right:8px; font-size:0.85em; font-weight:600; text-decoration:none;">Edit</a>
+          <a href="{% url 'admin_supplier_edit' s.pk %}" style="color:var(--primary); margin-right:8px; font-size:0.85em; font-weight:600; text-decoration:none;">Edit</a>
           <form method="post" onsubmit="return confirm('Delete this supplier entry?')" style="display:inline">
             {% csrf_token %}
             <input type="hidden" name="supplier_id" value="{{ s.pk }}">

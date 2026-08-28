@@ -1,21 +1,32 @@
 {% extends "base.html" %}
 {% block title %}Log in - {{ COMPANY_NAME }}{% endblock %}
 {% block content %}
-<div class="card" style="max-width:360px; margin: 60px auto;">
-  <h2 style="text-align:center">{{ COMPANY_NAME }}</h2>
-  <p style="text-align:center;font-style:italic;color:#2c5aa0;margin-top:-10px;">"{{ COMPANY_MOTTO }}"</p>
-  <form method="post">
-    {% csrf_token %}
-    <div class="field" style="margin-bottom:14px">
-      <label>Username</label>
-      {{ form.username }}
-    </div>
-    <div class="field" style="margin-bottom:14px">
-      <label>Password</label>
-      {{ form.password }}
-    </div>
-    {% if form.errors %}<p style="color:#c0392b">Incorrect username or password.</p>{% endif %}
-    <button type="submit" style="width:100%">Log in</button>
-  </form>
+<div class="login-wrap">
+  <div class="card login-card">
+    <div class="login-brand">{{ COMPANY_NAME }}</div>
+    <p class="login-motto">"{{ COMPANY_MOTTO }}"</p>
+    <form method="post">
+      {% csrf_token %}
+      <div class="field">
+        <label>Username</label>
+        {{ form.username }}
+      </div>
+      <div class="field">
+        <label>Password</label>
+        {{ form.password }}
+      </div>
+      {% if form.errors %}<p class="login-error">Incorrect username or password.</p>{% endif %}
+      <button type="submit" class="login-btn">Log in</button>
+    </form>
+  </div>
 </div>
+<style>
+  .login-wrap { display: flex; justify-content: center; align-items: center; min-height: 70vh; }
+  .login-card { max-width: 380px; width: 100%; padding: 34px 30px; box-shadow: var(--shadow); }
+  .login-brand { text-align: center; font-size: 1.7em; font-weight: 800; color: var(--primary-dark); }
+  .login-motto { text-align: center; font-style: italic; color: var(--primary); margin: 4px 0 24px; }
+  .login-card .field { margin-bottom: 14px; }
+  .login-error { color: var(--red); font-size: 0.9em; margin: 0 0 12px; }
+  .login-btn { width: 100%; padding: 12px; font-size: 1.05em; }
+</style>
 {% endblock %}

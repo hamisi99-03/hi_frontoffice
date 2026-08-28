@@ -45,7 +45,7 @@
 {% endif %}
 
 <div class="card">
-  <h3>Summary by Expense <span style="font-size:0.8em;color:#888;">({{ date_from|default:"beginning" }} â†’ {{ date_to|default:"today" }})</span></h3>
+  <h3>Summary by Expense <span style="font-size:0.8em;color:#888;">({{ date_from|default:"beginning" }} &rarr; {{ date_to|default:"today" }})</span></h3>
   <div class="grid" style="max-width:260px">
     <div class="stat"><div class="label">Overall Total</div><div class="value">KES {{ total|floatformat:2 }}</div></div>
   </div>

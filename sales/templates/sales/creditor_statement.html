@@ -3,7 +3,7 @@
 {% block content %}
 
 <div class="no-print" style="margin-bottom:12px;">
-  <a href="{% url 'credit_ledger' %}" style="color:var(--blue);">&laquo; Back to Credit Ledger</a>
+  <a href="{% url 'credit_ledger' %}" style="color:var(--primary);">&laquo; Back to Credit Ledger</a>
   <button onclick="window.print()" style="float:right;">Print Statement</button>
 </div>
 
@@ -57,15 +57,15 @@
 <style>
   .no-print { overflow: hidden; }
   .statement-head { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 14px; }
-  .biz-name { font-size: 1.6em; font-weight: 800; color: var(--blue-dark); }
+  .biz-name { font-size: 1.6em; font-weight: 800; color: var(--primary-dark); }
   .biz-sub { color: #666; }
   .statement-meta { text-align: right; font-size: 0.95em; }
-  tfoot .totals-row td { font-weight: 700; border-top: 2px solid var(--blue-dark); }
+  tfoot .totals-row td { font-weight: 700; border-top: 2px solid var(--primary-dark); }
   .balance-box {
-    margin-top: 16px; padding: 14px 18px; background: #eef4fb;
+    margin-top: 16px; padding: 14px 18px; background: var(--primary-soft);
     border-radius: 8px; display: flex; justify-content: space-between; align-items: center;
   }
-  .balance-value { font-size: 1.5em; font-weight: 800; color: var(--blue-dark); }
+  .balance-value { font-size: 1.5em; font-weight: 800; color: var(--primary-dark); }
 </style>
 
 {% endblock %}

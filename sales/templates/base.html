@@ -6,123 +6,235 @@
 <title>{% block title %}{{ COMPANY_NAME }}{% endblock %}</title>
 <style>
   :root {
-    --blue: #2c5aa0;
-    --blue-dark: #1e3f73;
-    --green: #1a7f37;
-    --red: #c0392b;
-    --bg: #f4f6f8;
-    --border: #d7dde3;
+    --primary: #b42318;
+    --primary-dark: #8a1c12;
+    --primary-deep: #5f1209;
+    --primary-soft: #fdecea;
+    --primary-tint: #f6d7d4;
+    --green: #18794e;
+    --green-soft: #e7f4ee;
+    --red: #d92d20;
+    --red-soft: #fdeceb;
+    --amber: #b54708;
+    --bg: #f6f4f3;
+    --card: #ffffff;
+    --border: #e6dfde;
+    --th: #f6eceb;
+    --text: #241d1d;
+    --muted: #7a6e6c;
+    --shadow-sm: 0 1px 2px rgba(90, 30, 20, 0.06);
+    --shadow: 0 8px 24px rgba(90, 30, 20, 0.09);
+    --radius: 12px;
   }
   * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
   body {
-    font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     background: var(--bg);
     margin: 0;
-    color: #1c1c1c;
+    color: var(--text);
     font-size: 16px;
+    line-height: 1.5;
+    min-height: 100vh;
   }
+
+  /* ---------- Header ---------- */
   header {
-    background: var(--blue-dark);
-    color: white;
-    padding: 14px 24px;
+    background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-deep) 100%);
+    color: #fff;
+    min-height: 58px;
+    padding: 0 24px;
     display: flex;
     justify-content: space-between;
     align-items: center;
     flex-wrap: wrap;
+    box-shadow: 0 2px 12px rgba(60, 12, 8, 0.35);
+    position: sticky;
+    top: 0;
+    z-index: 50;
   }
+  header .nav { display: flex; align-items: center; flex-wrap: wrap; }
   header a {
-    color: white;
+    color: #fff;
     text-decoration: none;
-    margin-right: 20px;
     font-weight: 600;
+    font-size: 0.95em;
+    padding: 19px 13px;
+    display: inline-block;
+    transition: background 0.15s ease;
   }
-  header .brand { font-size: 1.2em; font-weight: 700; margin-right: 30px; }
-  .dropdown { position: relative; display: inline-block; }
+  header a:hover { background: rgba(255, 255, 255, 0.12); }
+  header .brand {
+    font-size: 1.3em;
+    font-weight: 800;
+    letter-spacing: 0.4px;
+    padding: 14px 18px 14px 0;
+  }
+  header .brand .dot { color: #ffb3ae; }
+
+  .dropdown { position: relative; }
   .dropdown > a { cursor: pointer; }
+  .caret {
+    display: inline-block;
+    margin-left: 5px;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 6px solid #fff;
+    vertical-align: middle;
+  }
   .dropdown-content {
     display: none; position: absolute; top: 100%; left: 0;
-    background: #fff; min-width: 210px; box-shadow: 0 6px 16px rgba(0,0,0,0.25);
-    border-radius: 8px; z-index: 20; padding: 6px 0;
+    background: #fff; min-width: 220px;
+    box-shadow: 0 14px 34px rgba(40, 10, 8, 0.22);
+    border-radius: 10px; z-index: 20; padding: 6px 0;
+    border: 1px solid var(--border);
   }
   .dropdown-content a {
-    color: #1c1c1c; display: block; padding: 9px 18px;
-    text-decoration: none; font-weight: 500; margin: 0; font-size: 0.92em;
+    color: var(--text); display: block; padding: 9px 18px;
+    text-decoration: none; font-weight: 500; font-size: 0.92em;
   }
-  .dropdown-content a:hover { background: #eef4fb; }
+  .dropdown-content a:hover { background: var(--primary-soft); color: var(--primary-dark); }
   .dropdown:hover .dropdown-content { display: block; }
-  main { max-width: 1100px; margin: 24px auto; padding: 0 16px; }
+
+  .userbox { display: flex; align-items: center; }
+  .userbox .user {
+    font-weight: 600; font-size: 0.9em; padding: 0 14px;
+    opacity: 0.9;
+  }
+  .logout-form { display: inline; margin: 0; }
+
+  /* ---------- Layout ---------- */
+  main { max-width: 1180px; margin: 26px auto; padding: 0 20px; }
   .card {
-    background: white;
+    background: var(--card);
     border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 20px;
+    border-radius: var(--radius);
+    padding: 22px;
     margin-bottom: 20px;
+    box-shadow: var(--shadow-sm);
   }
-  h1, h2, h3 { margin-top: 0; }
+  h1, h2, h3 { margin-top: 0; color: var(--text); letter-spacing: -0.01em; }
+  h1 { font-size: 1.7em; }
+  h2 { font-size: 1.35em; }
+  h3 { font-size: 1.1em; }
+  a { color: var(--primary); }
+
+  /* ---------- Tables ---------- */
   table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); }
-  th { background: #eef2f7; font-size: 0.85em; text-transform: uppercase; color: #555; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  th {
+    background: var(--th);
+    font-size: 0.78em;
+    text-transform: uppercase;
+    color: #7a4a45;
+    letter-spacing: 0.03em;
+  }
+  tbody tr:nth-child(even) { background: #fbf8f7; }
+  tbody tr:hover { background: var(--primary-soft); }
+
+  /* ---------- Stats ---------- */
   .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin: 14px 0; }
-  .stat { background: #eef4fb; border-radius: 8px; padding: 14px; text-align: center; }
-  .stat .label { font-size: 0.8em; color: #556; text-transform: uppercase; }
-  .stat .value { font-size: 1.6em; font-weight: 700; color: var(--blue-dark); }
-  .stat.net { background: #eaf7ec; }
+  .stat {
+    background: linear-gradient(180deg, #fff 0%, var(--primary-soft) 100%);
+    border: 1px solid var(--primary-tint);
+    border-radius: 10px;
+    padding: 16px 14px;
+    text-align: center;
+    box-shadow: var(--shadow-sm);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .stat:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+  .stat .label { font-size: 0.78em; color: var(--muted); text-transform: uppercase; letter-spacing: 0.03em; }
+  .stat .value { font-size: 1.6em; font-weight: 800; color: var(--primary-dark); }
+  .stat.net { background: linear-gradient(180deg, #fff 0%, var(--green-soft) 100%); border-color: #bfe3d0; }
   .stat.net .value { color: var(--green); }
-  form.inline { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
-  label { display: block; font-size: 0.82em; color: #444; margin-bottom: 3px; }
+
+  /* ---------- Forms ---------- */
+  form.inline { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
+  label { display: block; font-size: 0.8em; color: var(--muted); margin-bottom: 4px; font-weight: 600; }
   input, select {
-    padding: 9px 10px; border: 1px solid var(--border); border-radius: 6px;
-    font-size: 1em; width: 100%;
+    padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px;
+    font-size: 1em; width: 100%; background: #fff; color: var(--text);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
   }
-  .field { min-width: 140px; }
+  input:focus, select:focus {
+    outline: none; border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(180, 35, 24, 0.15);
+  }
+  .field { min-width: 150px; }
+
   button {
-    background: var(--blue); color: white; border: none; border-radius: 6px;
+    background: linear-gradient(180deg, var(--primary) 0%, var(--primary-dark) 100%);
+    color: #fff; border: none; border-radius: 8px;
     padding: 10px 18px; font-size: 1em; cursor: pointer; font-weight: 600;
+    transition: transform 0.1s ease, box-shadow 0.15s ease, filter 0.15s ease;
+    box-shadow: var(--shadow-sm);
   }
-  button:hover { background: var(--blue-dark); }
-  button.danger { background: var(--red); padding: 6px 10px; font-size: 0.85em; }
+  button:hover { filter: brightness(1.06); box-shadow: var(--shadow); }
+  button:active { transform: translateY(1px); }
+  button:focus-visible { outline: 3px solid rgba(180, 35, 24, 0.35); outline-offset: 2px; }
+  button.danger { background: linear-gradient(180deg, #e0453a 0%, var(--red) 100%); padding: 6px 11px; font-size: 0.85em; }
+  button.secondary { background: linear-gradient(180deg, #238a58 0%, var(--green) 100%); }
+  .btn-ghost {
+    display: inline-block; background: #f1e8e6; color: #5a2320; padding: 10px 18px;
+    border-radius: 8px; font-weight: 600; text-decoration: none; border: 1px solid #e3d8d6;
+    transition: background 0.15s ease;
+  }
+  .btn-ghost:hover { background: #e8dcd9; }
+
   .errorlist { color: var(--red); font-size: 0.85em; list-style: none; padding: 0; margin: 4px 0 0; }
   .field.has-error input,
   .field.has-error select { border-color: var(--red); }
   .field .errorlist { margin-bottom: 4px; }
+
   .date-nav { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
-  .date-nav a { text-decoration: none; background: #e4e9ef; padding: 6px 12px; border-radius: 6px; color: #333; font-weight: 600; }
-  .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.78em; font-weight: 600; }
-  .badge.CASH { background: #d9f2e3; color: #146c2e; }
+  .date-nav a {
+    text-decoration: none; background: #f1e8e6; padding: 7px 13px; border-radius: 8px;
+    color: #5a2320; font-weight: 600; border: 1px solid #e3d8d6;
+  }
+  .date-nav a:hover { background: #e8dcd9; }
+
+  /* ---------- Badges ---------- */
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 0.76em; font-weight: 700; }
+  .badge.CASH { background: var(--green-soft); color: #146c2e; }
   .badge.MPESA { background: #fdecd2; color: #96590a; }
-  .badge.CREDIT { background: #fbdede; color: #a12727; }
+  .badge.CREDIT { background: var(--red-soft); color: #a12727; }
+
+  /* ---------- Messages / Flash ---------- */
   .messages {
     position: fixed; top: 16px; right: 16px; z-index: 1000;
     list-style: none; padding: 0; margin: 0; max-width: 380px;
   }
-  .empty { color: #888; font-style: italic; padding: 12px 0; }
+  .empty { color: #a09796; font-style: italic; padding: 12px 0; }
   .flash {
-    padding: 12px 16px; border-radius: 8px; margin: 0 0 10px;
+    padding: 12px 16px; border-radius: 10px; margin: 0 0 10px;
     font-weight: 600; border: 1px solid transparent; cursor: pointer;
-    box-shadow: 0 6px 20px rgba(0,0,0,0.18); transition: opacity 0.4s;
+    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.18); transition: opacity 0.4s;
   }
-  .flash.success { background: #d9f2e3; color: #146c2e; border-color: #bfe6cf; }
-  .flash.error, .flash.warning { background: #fdeceb; color: #a12727; border-color: #f5c6c6; }
-  .flash.info { background: #eef4fb; color: var(--blue-dark); border-color: #d7e3f2; }
+  .flash.success { background: var(--green-soft); color: #146c2e; border-color: #bfe6cf; }
+  .flash.error, .flash.warning { background: var(--red-soft); color: #a12727; border-color: #f5c6c6; }
+  .flash.info { background: var(--primary-soft); color: var(--primary-dark); border-color: var(--primary-tint); }
+
   @media print {
     header, button, form, .date-nav, a[href], .badge { display: none; }
     body { background: white; font-size: 12pt; }
     .card { border: none; box-shadow: none; padding: 8px 0; }
     table { font-size: 11pt; }
     th { background: #ddd; color: #000; }
+    tbody tr:nth-child(even) { background: transparent; }
   }
 </style>
 </head>
 <body>
 <header>
-  <div style="display:flex; align-items:center; flex-wrap:wrap;">
-    <span class="brand">{{ COMPANY_NAME }}</span>
+  <div class="nav">
+    <span class="brand">{{ COMPANY_NAME }}<span class="dot">.</span></span>
     {% if user.is_authenticated %}
       <a href="{% url 'daily_entry' %}">Today's Sales</a>
       <a href="{% url 'credit_ledger' %}">Credit Ledger</a>
       {% if user.is_staff %}
       <div class="dropdown">
-        <a href="#" onclick="return false;">Manage â–¾</a>
+        <a href="#" onclick="return false;">Manage <span class="caret"></span></a>
         <div class="dropdown-content">
           <a href="{% url 'admin_items' %}">Items &amp; Prices</a>
           <a href="{% url 'admin_suppliers' %}">Suppliers</a>
@@ -139,10 +251,10 @@
     {% endif %}
   </div>
   {% if user.is_authenticated %}
-    <div style="display:flex; align-items:center;">
-      <span style="margin-right:14px;">{{ user.username }}</span>
-      <a href="{% url 'password_change' %}" style="margin-right:14px;">Change Password</a>
-      <form method="post" action="{% url 'logout' %}" style="display:inline">
+    <div class="userbox">
+      <span class="user">{{ user.username }}</span>
+      <a href="{% url 'password_change' %}">Change Password</a>
+      <form method="post" action="{% url 'logout' %}" class="logout-form">
         {% csrf_token %}
         <a href="#" onclick="this.closest('form').submit(); return false;">Log out</a>
       </form>

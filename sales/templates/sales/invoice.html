@@ -10,31 +10,31 @@
   .toolbar {
     max-width: 760px; margin: 0 auto 12px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
   }
-  .toolbar a { color: #2c5aa0; text-decoration: none; font-size: 0.9em; }
+  .toolbar a { color: #b42318; text-decoration: none; font-size: 0.9em; }
   .toolbar .spacer { flex: 1; }
   .btn {
     display: inline-block; padding: 8px 14px; border-radius: 6px; cursor: pointer;
     font-weight: 600; font-size: 0.9em; text-decoration: none; color: #fff; border: none;
   }
-  .btn.print { background: #2c5aa0; }
+  .btn.print { background: #b42318; }
   .btn.pdf { background: #c0392b; }
   .invoice {
     max-width: 760px; margin: 0 auto; background: #fff; padding: 28px 30px;
     border-radius: 6px; box-shadow: 0 2px 12px rgba(0,0,0,0.12); font-size: 14px;
   }
   .center { text-align: center; }
-  .brand { font-size: 22px; font-weight: 800; color: #1e3f73; }
-  .motto { font-style: italic; color: #2c5aa0; margin: 2px 0 4px; }
+  .brand { font-size: 22px; font-weight: 800; color: #8a1c12; }
+  .motto { font-style: italic; color: #b42318; margin: 2px 0 4px; }
   .addr { font-size: 12px; color: #555; }
   .inv-band {
-    background: #1e3f73; color: #fff; text-align: center; font-weight: 700; font-size: 16px;
+    background: #8a1c12; color: #fff; text-align: center; font-weight: 700; font-size: 16px;
     letter-spacing: 3px; padding: 8px; margin: 16px 0; border-radius: 3px;
   }
   .meta { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 16px; margin-bottom: 16px; }
-  .meta .k { font-weight: 700; color: #1e3f73; font-size: 11px; text-transform: uppercase; }
+  .meta .k { font-weight: 700; color: #8a1c12; font-size: 11px; text-transform: uppercase; }
   table { width: 100%; border-collapse: collapse; }
-  th { background: #2c5aa0; color: #fff; text-align: left; padding: 8px 10px; font-size: 11px; text-transform: uppercase; }
-  td { padding: 8px 10px; border-bottom: 1px solid #eef2f7; }
+  th { background: #b42318; color: #fff; text-align: left; padding: 8px 10px; font-size: 11px; text-transform: uppercase; }
+  td { padding: 8px 10px; border-bottom: 1px solid #f1e9e8; }
   .r { text-align: right; }
   .totals { width: 320px; margin-left: auto; margin-top: 12px; }
   .totals td { border: none; padding: 4px 10px; }
@@ -52,7 +52,7 @@
 <div class="toolbar">
   <a href="javascript:history.back()">&laquo; Back</a>
   <span class="spacer"></span>
-  <a class="btn pdf" href="?name={{ invoice.customer_name|urlencode }}&download=pdf">Download PDF</a>
+  <a class="btn pdf" href="?name={{ invoice.customer_name|urlencode }}&download=pdf" target="_blank" rel="noopener">Download PDF</a>
   <button class="btn print" onclick="window.print()">Print</button>
 </div>
 
