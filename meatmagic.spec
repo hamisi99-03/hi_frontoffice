@@ -21,6 +21,7 @@ for src_dir, dst_dir in [
     (os.path.join(PROJ, "templates"), "templates"),
     (os.path.join(PROJ, "sales", "templates"), os.path.join("sales", "templates")),
     (os.path.join(PROJ, "sales", "migrations"), os.path.join("sales", "migrations")),
+    (os.path.join(PROJ, "static"), "static"),
 ]:
     if os.path.isdir(src_dir):
         for root, _dirs, files in os.walk(src_dir):

@@ -1,10 +1,10 @@
 {% extends "base.html" %}
+{% load static %}
 {% block title %}Log in - {{ COMPANY_NAME }}{% endblock %}
 {% block content %}
 <div class="login-wrap">
   <div class="card login-card">
-    <div class="login-brand">{{ COMPANY_NAME }}</div>
-    <p class="login-motto">"{{ COMPANY_MOTTO }}"</p>
+    <img src="{% static 'img/logo.jpg' %}" alt="{{ COMPANY_NAME }}" class="login-logo">
     <form method="post">
       {% csrf_token %}
       <div class="field">
@@ -23,8 +23,11 @@
 <style>
   .login-wrap { display: flex; justify-content: center; align-items: center; min-height: 70vh; }
   .login-card { max-width: 380px; width: 100%; padding: 34px 30px; box-shadow: var(--shadow); }
-  .login-brand { text-align: center; font-size: 1.7em; font-weight: 800; color: var(--primary-dark); }
-  .login-motto { text-align: center; font-style: italic; color: var(--primary); margin: 4px 0 24px; }
+  .login-logo {
+    display: block; width: 160px; height: 160px; object-fit: cover;
+    border-radius: 26px; margin: 0 auto 24px; box-shadow: var(--shadow);
+    border: 2px solid var(--primary-tint);
+  }
   .login-card .field { margin-bottom: 14px; }
   .login-error { color: var(--red); font-size: 0.9em; margin: 0 0 12px; }
   .login-btn { width: 100%; font-size: 1.05em; }
