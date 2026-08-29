@@ -47,12 +47,15 @@
     <span style="font-size:0.85em;color:#888;">{% if data.balance < 0 %}— overpaid KES {{ data.overpaid|floatformat:2 }}{% elif data.balance == 0 %}— settled{% else %}— owes KES {{ data.balance|floatformat:2 }}{% endif %}</span>
     <a href="{% url 'invoice_customer' %}?name={{ customer_name|urlencode }}" style="float:right;font-size:0.85em;color:var(--green);margin-left:12px;">Invoice</a>
     <a href="{% url 'receipt_customer' %}?name={{ customer_name|urlencode }}" style="float:right;font-size:0.85em;color:var(--primary);">Print Receipt</a>
+    {% if data.paid_count %}
+    <button type="button" class="toggle-paid secondary" data-count="{{ data.paid_count }}" onclick="togglePaid(this)">Show paid orders ({{ data.paid_count }})</button>
+    {% endif %}
   </h3>
   <table>
     <thead><tr><th>Date</th><th>CTP</th><th>Item</th><th>Gross</th><th>Paid</th><th>Balance</th><th class="pay-col">Pay Now</th></tr></thead>
     <tbody>
       {% for sale in data.sales %}
-      <tr>
+      <tr{% if sale.balance <= 0 %} class="paid-row"{% endif %}>
         <td>{{ sale.date }}</td>
         <td>{% if sale.customer_ctp %}{{ sale.customer_ctp }}{% else %}—{% endif %}</td>
         <td>{{ sale.item.name }}</td>
@@ -144,6 +147,9 @@
   .settle-btn:hover { background: #14704a; }
   .badge.CASH { background: #d9f2e3; color: #146c2e; }
   .badge.MPESA { background: #fdecd2; color: #96590a; }
+  .paid-row { display: none; }
+  .card.show-paid .paid-row { display: table-row; }
+  .toggle-paid { float: right; margin-left: 12px; font-size: 0.85em; line-height: 1.4; }
 </style>
 
 <script>
@@ -154,6 +160,12 @@
   function confirmSettle(form) {
     var amt = form.querySelector('.settle-amt').value;
     return confirm('Apply KES ' + amt + ' to this customer\'s oldest debts?');
+  }
+  function togglePaid(btn) {
+    var card = btn.closest('.card');
+    var showing = card.classList.toggle('show-paid');
+    var count = btn.getAttribute('data-count') || '';
+    btn.textContent = showing ? 'Hide paid orders' : 'Show paid orders' + (count ? ' (' + count + ')' : '');
   }
 </script>
 

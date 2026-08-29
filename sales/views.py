@@ -700,6 +700,7 @@ def credit_ledger(request):
 
     for c in customers.values():
         c["balance"] = c["total_owed"] - c["total_paid"]
+        c["paid_count"] = sum(1 for s in c["sales"] if s.balance <= 0)
         if c["balance"] < 0:
             c["overpaid"] = -c["balance"]
     sorted_customers = sorted(customers.items(), key=lambda x: x[1]["balance"], reverse=True)
