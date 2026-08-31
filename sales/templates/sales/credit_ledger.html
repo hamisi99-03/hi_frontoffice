@@ -3,7 +3,10 @@
 {% block content %}
 
 <div class="card">
-  <h2>Credit Ledger</h2>
+  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
+    <h2 style="margin:0;">Credit Ledger</h2>
+    <button type="button" class="secondary" onclick="document.getElementById('recent-payments').scrollIntoView({behavior:'smooth'});">Recent Payments</button>
+  </div>
   <div class="grid" style="max-width:260px">
     <div class="stat"><div class="label">Total Outstanding</div><div class="value">KES {{ outstanding_total|floatformat:2 }}</div></div>
   </div>
@@ -114,7 +117,7 @@
 <div class="card"><p class="empty">No credit sales recorded yet.</p></div>
 {% endfor %}
 
-<div class="card">
+<div class="card" id="recent-payments">
   <h3>Recent Payments</h3>
   <table>
     <thead><tr><th>Date</th><th>Customer</th><th>Sale</th><th>Amount</th><th>Mode</th><th>Note</th><th>Cashier</th><th></th></tr></thead>

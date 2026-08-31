@@ -13,11 +13,22 @@
   .toolbar a { color: #b42318; text-decoration: none; font-size: 0.9em; }
   .toolbar .spacer { flex: 1; }
   .btn {
-    display: inline-block; padding: 8px 14px; border-radius: 6px; cursor: pointer;
-    font-weight: 600; font-size: 0.9em; text-decoration: none; color: #fff; border: none;
+    display: inline-block; cursor: pointer;
+    font-weight: 700; font-size: 0.9em; text-decoration: none; color: #fff;
+    border-radius: 30px; line-height: 30px; padding: 0 20px;
+    transition: transform 0.1s ease, box-shadow 0.1s ease, background 0.15s ease;
+    -webkit-user-select: none; user-select: none;
   }
-  .btn.print { background: #b42318; }
-  .btn.pdf { background: #c0392b; }
+  .btn.print {
+    background: #b42318; border: 2px solid #5f1209; box-shadow: #5f1209 4px 4px 0 0;
+  }
+  .btn.print:hover { background: #8a1c12; }
+  .btn.print:active { box-shadow: #5f1209 2px 2px 0 0; transform: translate(2px, 2px); }
+  .btn.pdf {
+    background: #18794e; border: 2px solid #0d5a38; box-shadow: #0d5a38 4px 4px 0 0;
+  }
+  .btn.pdf:hover { background: #14704a; }
+  .btn.pdf:active { box-shadow: #0d5a38 2px 2px 0 0; transform: translate(2px, 2px); }
   .invoice {
     max-width: 760px; margin: 0 auto; background: #fff; padding: 28px 30px;
     border-radius: 6px; box-shadow: 0 2px 12px rgba(0,0,0,0.12); font-size: 14px;
