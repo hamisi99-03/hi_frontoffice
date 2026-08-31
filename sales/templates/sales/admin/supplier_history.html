@@ -4,6 +4,10 @@
 
 <h2>Supplier Payment History</h2>
 
+<div style="text-align:right; margin-bottom:8px;">
+  <button onclick="window.print()" class="secondary">Print History</button>
+</div>
+
 <div class="card">
   <h3>{{ supplier.supplier_name }} — {{ supplier.item_name }}</h3>
   <p style="color:#555;">
@@ -31,5 +35,11 @@
   </table>
   <p style="margin-top:12px;"><a href="{% url 'admin_suppliers' %}" class="btn-ghost">Back to Suppliers</a></p>
 </div>
+
+<style>
+  @media print {
+    .badge { display: inline-block !important; background: none !important; color: #000 !important; padding: 0 !important; }
+  }
+</style>
 
 {% endblock %}

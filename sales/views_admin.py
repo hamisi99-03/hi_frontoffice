@@ -407,41 +407,53 @@ def admin_expense_summary(request):
     return render(request, "sales/admin/expense_summary.html", context)
 
 
-def _svg_line_chart(labels, series, width=760, height=280):
-    """Render a dependency-free multi-line SVG chart.
+def _svg_bar_chart(labels, series, width=760, height=280):
+    """Render a dependency-free grouped-bar SVG chart.
 
     `labels` is a list of x-axis strings and `series` is a list of
     ``(name, color, values)`` tuples whose value lists parallel `labels`.
+    Handles negative values (bars drawn below the zero line).
     """
     labels = list(labels)
     series = list(series)
+    n = len(labels)
+    k = len(series)
 
     pad_l, pad_r, pad_t, pad_b = 64, 12, 14, 34
     plot_w = width - pad_l - pad_r
     plot_h = height - pad_t - pad_b
 
     max_val = 0.0
+    min_val = 0.0
     for _, _, vals in series:
         for v in vals:
-            max_val = max(max_val, float(v or 0))
+            fv = float(v or 0)
+            max_val = max(max_val, fv)
+            min_val = min(min_val, fv)
+
     if max_val <= 0:
         max_val = 1.0
     nice = 10 ** math.floor(math.log10(max_val)) if max_val > 0 else 1.0
     ymax = math.ceil(max_val / nice) * nice
 
-    def px(i):
-        if len(labels) <= 1:
-            return pad_l + plot_w / 2.0
-        return pad_l + plot_w * i / (len(labels) - 1)
+    ymin = 0.0
+    if min_val < 0:
+        nice_n = 10 ** math.floor(math.log10(abs(min_val))) if min_val != 0 else 1.0
+        ymin = -math.ceil(abs(min_val) / nice_n) * nice_n
 
-    def py(v):
-        return pad_t + plot_h * (1 - float(v or 0) / ymax)
+    span = ymax - ymin
+
+    def y(v):
+        return pad_t + (ymax - float(v or 0)) / span * plot_h
+
+    def gx(i):
+        return pad_l + (i + 0.5) * (plot_w / n if n else 0)
 
     parts = []
     ticks = 5
     for t in range(ticks + 1):
-        val = ymax * t / ticks
-        yy = pad_t + plot_h * (1 - t / ticks)
+        val = ymax - (ymax - ymin) * t / ticks
+        yy = pad_t + plot_h * t / ticks
         parts.append(
             f'<line x1="{pad_l}" y1="{yy:.1f}" x2="{pad_l + plot_w}" y2="{yy:.1f}" '
             f'stroke="#eee" stroke-width="1"/>'
@@ -451,29 +463,35 @@ def _svg_line_chart(labels, series, width=760, height=280):
             f'font-size="10" fill="#999">{val:,.0f}</text>'
         )
 
-    if labels:
-        step = max(1, len(labels) // 8)
+    if n:
+        step = max(1, n // 8)
         for i, lab in enumerate(labels):
-            if i % step == 0 or i == len(labels) - 1:
+            if i % step == 0 or i == n - 1:
                 parts.append(
-                    f'<text x="{px(i):.1f}" y="{pad_t + plot_h + 16}" '
+                    f'<text x="{gx(i):.1f}" y="{pad_t + plot_h + 16}" '
                     f'text-anchor="middle" font-size="10" fill="#999">{lab}</text>'
                 )
 
-    for name, color, vals in series:
-        pts = " ".join(f"{px(i):.1f},{py(v):.1f}" for i, v in enumerate(vals))
-        parts.append(
-            f'<polyline points="{pts}" fill="none" stroke="{color}" stroke-width="2.5" '
-            f'stroke-linejoin="round" stroke-linecap="round"/>'
-        )
-        for i, v in enumerate(vals):
+    group_w = plot_w / n if n else plot_w
+    bar_w = group_w * 0.7 / k
+    y_base = y(0.0)
+    for i in range(n):
+        for j, (name, color, vals) in enumerate(series):
+            fv = float(vals[i] or 0)
+            y_val = y(fv)
+            x0 = pad_l + i * group_w + group_w * 0.15 + j * bar_w
+            top = min(y_val, y_base)
+            bar_h = abs(y_val - y_base)
+            if bar_h < 0.5:
+                bar_h = 0.5
             parts.append(
-                f'<circle cx="{px(i):.1f}" cy="{py(v):.1f}" r="2.6" fill="{color}"/>'
+                f'<rect x="{x0:.1f}" y="{top:.1f}" width="{bar_w:.1f}" '
+                f'height="{bar_h:.1f}" fill="{color}"/>'
             )
 
     return (
         f'<svg viewBox="0 0 {width} {height}" width="100%" height="auto" '
-        f'role="img" aria-label="line chart">' + "".join(parts) + "</svg>"
+        f'role="img" aria-label="bar chart">' + "".join(parts) + "</svg>"
     )
 
 
@@ -554,7 +572,7 @@ def admin_reports(request):
             "total": totals["credit"] or Decimal("0"),
             "count": counts["credit_count"] or 0,
             "pct": pct(totals["credit"]),
-            "color": "#d92d20",
+            "color": "#eab308",
             "badge": "CREDIT",
         },
     ]
@@ -570,12 +588,12 @@ def admin_reports(request):
         .order_by("date")
     )
     payment_labels = [row["date"].strftime("%d/%m") for row in daily]
-    payment_chart = _svg_line_chart(
+    payment_chart = _svg_bar_chart(
         payment_labels,
         [
             ("Cash", "#18794e", [float(row["cash"] or 0) for row in daily]),
             ("Mpesa", "#b54708", [float(row["mpesa"] or 0) for row in daily]),
-            ("Credit", "#d92d20", [float(row["credit"] or 0) for row in daily]),
+            ("Credit", "#eab308", [float(row["credit"] or 0) for row in daily]),
         ],
     )
 
@@ -592,11 +610,11 @@ def admin_reports(request):
     opening_vals = [float(opening_by_date.get(d) or 0) for d in stock_dates]
     sold_vals = [float(sold_by_date.get(d) or 0) for d in stock_dates]
     remaining_vals = [o - s for o, s in zip(opening_vals, sold_vals)]
-    stock_chart = _svg_line_chart(
+    stock_chart = _svg_bar_chart(
         [d.strftime("%d/%m") for d in stock_dates],
         [
             ("Opening", "#18794e", opening_vals),
-            ("Sold", "#d92d20", sold_vals),
+            ("Sold", "#eab308", sold_vals),
             ("Remaining", "#b54708", remaining_vals),
         ],
     )
