@@ -5,7 +5,7 @@ from django.db.models import Q, Sum
 from django.urls import reverse
 from django.utils.html import format_html
 
-from .models import CreditPayment, Expense, Invoice, Item, OtherService, Sale, Supplier
+from .models import CreditPayment, Expense, Invoice, Item, OtherService, Sale, Supplier, SupplierPayment
 
 
 admin.site.site_header = "Meat Magic Enterprises LTD"
@@ -183,6 +183,13 @@ class CreditPaymentAdmin(admin.ModelAdmin):
         return super().changelist_view(request, extra_context)
 
 
+class SupplierPaymentInline(admin.TabularInline):
+    model = SupplierPayment
+    extra = 0
+    fields = ("date", "amount", "payment_mode", "remarks")
+    readonly_fields = ()
+
+
 @admin.register(Supplier)
 class SupplierAdmin(admin.ModelAdmin):
     list_display = ("date_supplied", "supplier_name", "unit_price", "total_kgs", "total", "date_paid", "amount_paid", "balance", "payment_mode", "remarks", "created_by")
@@ -192,6 +199,23 @@ class SupplierAdmin(admin.ModelAdmin):
     list_per_page = 50
     list_select_related = ("created_by",)
     save_on_top = True
+    inlines = [SupplierPaymentInline]
+
+
+@admin.register(SupplierPayment)
+class SupplierPaymentAdmin(admin.ModelAdmin):
+    list_display = ("date", "supplier_name", "amount", "payment_mode", "remarks", "created_by")
+    list_filter = ("date", "payment_mode")
+    search_fields = ("supplier__supplier_name", "remarks")
+    date_hierarchy = "date"
+    list_per_page = 50
+    list_select_related = ("supplier", "created_by")
+    save_on_top = True
+
+    def supplier_name(self, obj):
+        return obj.supplier.supplier_name
+    supplier_name.short_description = "Supplier"
+    supplier_name.admin_order_field = "supplier__supplier_name"
 
 
 @admin.register(Invoice)

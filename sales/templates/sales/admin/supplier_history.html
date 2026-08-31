@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Payment History - {{ COMPANY_NAME }}{% endblock %}
+{% block content %}
+
+<h2>Supplier Payment History</h2>
+
+<div class="card">
+  <h3>{{ supplier.supplier_name }} — {{ supplier.item_name }}</h3>
+  <p style="color:#555;">
+    Supplied {{ supplier.total_kgs }} kg @ KES {{ supplier.unit_price|floatformat:2 }} = <strong>KES {{ supplier.total|floatformat:2 }}</strong><br>
+    Total paid: <strong>KES {{ total_paid|floatformat:2 }}</strong> &nbsp;|&nbsp; Balance: <strong>KES {{ supplier.balance|floatformat:2 }}</strong>
+  </p>
+</div>
+
+<div class="card">
+  <table>
+    <thead><tr><th>Date Paid</th><th>Amount</th><th>Mode</th><th>Remarks</th><th>Recorded By</th></tr></thead>
+    <tbody>
+      {% for p in payments %}
+      <tr>
+        <td>{{ p.date }}</td>
+        <td>KES {{ p.amount|floatformat:2 }}</td>
+        <td><span class="badge {{ p.payment_mode }}">{{ p.get_payment_mode_display }}</span></td>
+        <td>{{ p.remarks }}</td>
+        <td>{{ p.created_by.username|default:"—" }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="5" class="empty">No payments recorded yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <p style="margin-top:12px;"><a href="{% url 'admin_suppliers' %}" class="btn-ghost">Back to Suppliers</a></p>
+</div>
+
+{% endblock %}

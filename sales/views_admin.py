@@ -1,11 +1,12 @@
 import csv
 import datetime
+import math
 from decimal import Decimal
 
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.models import User
-from django.db.models import Q, Sum
+from django.db.models import Count, Q, Sum
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -19,6 +20,7 @@ from .models import (
     Sale,
     Stock,
     Supplier,
+    SupplierPayment,
     normalize_customer_name,
     normalize_expense_name,
 )
@@ -106,13 +108,26 @@ def admin_supplier_pay(request, pk):
     if request.method == "POST":
         form = SupplierPaymentForm(request.POST)
         if form.is_valid():
-            supplier.amount_paid = (supplier.amount_paid or Decimal("0")) + form.cleaned_data["amount"]
-            supplier.date_paid = form.cleaned_data["date_paid"]
-            supplier.payment_mode = form.cleaned_data["payment_mode"]
+            amount = form.cleaned_data["amount"]
+            date_paid = form.cleaned_data["date_paid"]
+            mode = form.cleaned_data["payment_mode"]
             remarks = (form.cleaned_data.get("remarks") or "").strip()
+
+            supplier.amount_paid = (supplier.amount_paid or Decimal("0")) + amount
+            supplier.date_paid = date_paid
+            supplier.payment_mode = mode
             if remarks:
                 supplier.remarks = remarks
             supplier.save()
+
+            SupplierPayment.objects.create(
+                supplier=supplier,
+                date=date_paid,
+                amount=amount,
+                payment_mode=mode,
+                remarks=remarks,
+                created_by=request.user,
+            )
             messages.success(request, "Supplier payment recorded.")
             return redirect("admin_suppliers")
     else:
@@ -120,6 +135,18 @@ def admin_supplier_pay(request, pk):
     return render(request, "sales/admin/supplier_pay.html", {
         "form": form,
         "supplier": supplier,
+    })
+
+
+@staff_member_required
+def admin_supplier_history(request, pk):
+    supplier = get_object_or_404(Supplier, pk=pk)
+    payments = supplier.payments.select_related("created_by").order_by("-date", "-id")
+    total_paid = payments.aggregate(t=Sum("amount"))["t"] or Decimal("0")
+    return render(request, "sales/admin/supplier_history.html", {
+        "supplier": supplier,
+        "payments": payments,
+        "total_paid": total_paid,
     })
 
 
@@ -380,6 +407,76 @@ def admin_expense_summary(request):
     return render(request, "sales/admin/expense_summary.html", context)
 
 
+def _svg_line_chart(labels, series, width=760, height=280):
+    """Render a dependency-free multi-line SVG chart.
+
+    `labels` is a list of x-axis strings and `series` is a list of
+    ``(name, color, values)`` tuples whose value lists parallel `labels`.
+    """
+    labels = list(labels)
+    series = list(series)
+
+    pad_l, pad_r, pad_t, pad_b = 64, 12, 14, 34
+    plot_w = width - pad_l - pad_r
+    plot_h = height - pad_t - pad_b
+
+    max_val = 0.0
+    for _, _, vals in series:
+        for v in vals:
+            max_val = max(max_val, float(v or 0))
+    if max_val <= 0:
+        max_val = 1.0
+    nice = 10 ** math.floor(math.log10(max_val)) if max_val > 0 else 1.0
+    ymax = math.ceil(max_val / nice) * nice
+
+    def px(i):
+        if len(labels) <= 1:
+            return pad_l + plot_w / 2.0
+        return pad_l + plot_w * i / (len(labels) - 1)
+
+    def py(v):
+        return pad_t + plot_h * (1 - float(v or 0) / ymax)
+
+    parts = []
+    ticks = 5
+    for t in range(ticks + 1):
+        val = ymax * t / ticks
+        yy = pad_t + plot_h * (1 - t / ticks)
+        parts.append(
+            f'<line x1="{pad_l}" y1="{yy:.1f}" x2="{pad_l + plot_w}" y2="{yy:.1f}" '
+            f'stroke="#eee" stroke-width="1"/>'
+        )
+        parts.append(
+            f'<text x="{pad_l - 6}" y="{yy + 4:.1f}" text-anchor="end" '
+            f'font-size="10" fill="#999">{val:,.0f}</text>'
+        )
+
+    if labels:
+        step = max(1, len(labels) // 8)
+        for i, lab in enumerate(labels):
+            if i % step == 0 or i == len(labels) - 1:
+                parts.append(
+                    f'<text x="{px(i):.1f}" y="{pad_t + plot_h + 16}" '
+                    f'text-anchor="middle" font-size="10" fill="#999">{lab}</text>'
+                )
+
+    for name, color, vals in series:
+        pts = " ".join(f"{px(i):.1f},{py(v):.1f}" for i, v in enumerate(vals))
+        parts.append(
+            f'<polyline points="{pts}" fill="none" stroke="{color}" stroke-width="2.5" '
+            f'stroke-linejoin="round" stroke-linecap="round"/>'
+        )
+        for i, v in enumerate(vals):
+            parts.append(
+                f'<circle cx="{px(i):.1f}" cy="{py(v):.1f}" r="2.6" fill="{color}"/>'
+            )
+
+    return (
+        f'<svg viewBox="0 0 {width} {height}" width="100%" height="auto" '
+        f'role="img" aria-label="line chart">' + "".join(parts) + "</svg>"
+    )
+
+
 @staff_member_required
 def admin_reports(request):
     date_from = request.GET.get("date_from", "")
@@ -388,21 +485,30 @@ def admin_reports(request):
     sales_qs = Sale.objects.select_related("item").all()
     expenses_qs = Expense.objects.all()
     services_qs = OtherService.objects.all()
+    stock_qs = Stock.objects.all()
 
     if date_from:
         sales_qs = sales_qs.filter(date__gte=date_from)
         expenses_qs = expenses_qs.filter(date__gte=date_from)
         services_qs = services_qs.filter(date__gte=date_from)
+        stock_qs = stock_qs.filter(date__gte=date_from)
     if date_to:
         sales_qs = sales_qs.filter(date__lte=date_to)
         expenses_qs = expenses_qs.filter(date__lte=date_to)
         services_qs = services_qs.filter(date__lte=date_to)
+        stock_qs = stock_qs.filter(date__lte=date_to)
 
     totals = sales_qs.aggregate(
         total=Sum("gross"),
         cash=Sum("gross", filter=Q(payment_method=Sale.CASH)),
         mpesa=Sum("gross", filter=Q(payment_method=Sale.MPESA)),
         credit=Sum("gross", filter=Q(payment_method=Sale.CREDIT)),
+    )
+
+    counts = sales_qs.aggregate(
+        cash_count=Count("id", filter=Q(payment_method=Sale.CASH)),
+        mpesa_count=Count("id", filter=Q(payment_method=Sale.MPESA)),
+        credit_count=Count("id", filter=Q(payment_method=Sale.CREDIT)),
     )
 
     expenses_total = expenses_qs.aggregate(t=Sum("amount"))["t"] or Decimal("0")
@@ -415,6 +521,86 @@ def admin_reports(request):
         .order_by("-total_gross")
     )
 
+    # --- Payment method analysis ---
+    total_sales = totals["total"] or Decimal("0")
+
+    def pct(value):
+        if not total_sales:
+            return "0.0%"
+        return f"{(Decimal(value or 0) / total_sales * 100):.1f}%"
+
+    payment_analysis = [
+        {
+            "key": "CASH",
+            "label": "Cash",
+            "total": totals["cash"] or Decimal("0"),
+            "count": counts["cash_count"] or 0,
+            "pct": pct(totals["cash"]),
+            "color": "#18794e",
+            "badge": "CASH",
+        },
+        {
+            "key": "MPESA",
+            "label": "Mpesa",
+            "total": totals["mpesa"] or Decimal("0"),
+            "count": counts["mpesa_count"] or 0,
+            "pct": pct(totals["mpesa"]),
+            "color": "#b54708",
+            "badge": "MPESA",
+        },
+        {
+            "key": "CREDIT",
+            "label": "Credit",
+            "total": totals["credit"] or Decimal("0"),
+            "count": counts["credit_count"] or 0,
+            "pct": pct(totals["credit"]),
+            "color": "#d92d20",
+            "badge": "CREDIT",
+        },
+    ]
+
+    # --- Payment trend line chart (daily cash / mpesa / credit) ---
+    daily = (
+        sales_qs.values("date")
+        .annotate(
+            cash=Sum("gross", filter=Q(payment_method=Sale.CASH)),
+            mpesa=Sum("gross", filter=Q(payment_method=Sale.MPESA)),
+            credit=Sum("gross", filter=Q(payment_method=Sale.CREDIT)),
+        )
+        .order_by("date")
+    )
+    payment_labels = [row["date"].strftime("%d/%m") for row in daily]
+    payment_chart = _svg_line_chart(
+        payment_labels,
+        [
+            ("Cash", "#18794e", [float(row["cash"] or 0) for row in daily]),
+            ("Mpesa", "#b54708", [float(row["mpesa"] or 0) for row in daily]),
+            ("Credit", "#d92d20", [float(row["credit"] or 0) for row in daily]),
+        ],
+    )
+
+    # --- Stock analysis line chart (opening / sold / remaining kg) ---
+    opening_by_date = {
+        row["date"]: row["t"]
+        for row in stock_qs.values("date").annotate(t=Sum("opening_kg")).order_by("date")
+    }
+    sold_by_date = {
+        row["date"]: row["t"]
+        for row in sales_qs.values("date").annotate(t=Sum("weight_kg")).order_by("date")
+    }
+    stock_dates = sorted(set(opening_by_date) | set(sold_by_date))
+    opening_vals = [float(opening_by_date.get(d) or 0) for d in stock_dates]
+    sold_vals = [float(sold_by_date.get(d) or 0) for d in stock_dates]
+    remaining_vals = [o - s for o, s in zip(opening_vals, sold_vals)]
+    stock_chart = _svg_line_chart(
+        [d.strftime("%d/%m") for d in stock_dates],
+        [
+            ("Opening", "#18794e", opening_vals),
+            ("Sold", "#d92d20", sold_vals),
+            ("Remaining", "#b54708", remaining_vals),
+        ],
+    )
+
     context = {
         "date_from": date_from,
         "date_to": date_to,
@@ -423,6 +609,10 @@ def admin_reports(request):
         "services_total": services_total,
         "net": net,
         "by_item": by_item,
+        "payment_analysis": payment_analysis,
+        "payment_chart": payment_chart,
+        "stock_chart": stock_chart,
+        "has_stock_data": bool(stock_dates),
         "query_string": request.META.get("QUERY_STRING", ""),
     }
     return render(request, "sales/admin/reports.html", context)

@@ -20,6 +20,7 @@ urlpatterns = [
     path("manage/suppliers/", views_admin.admin_suppliers, name="admin_suppliers"),
     path("manage/suppliers/<int:pk>/edit/", views_admin.admin_supplier_edit, name="admin_supplier_edit"),
     path("manage/suppliers/<int:pk>/pay/", views_admin.admin_supplier_pay, name="admin_supplier_pay"),
+    path("manage/suppliers/<int:pk>/history/", views_admin.admin_supplier_history, name="admin_supplier_history"),
     path("manage/sales/", views_admin.admin_sales, name="admin_sales"),
     path("manage/expenses/", views_admin.admin_expenses, name="admin_expenses"),
     path("manage/expense-summary/", views_admin.admin_expense_summary, name="admin_expense_summary"),

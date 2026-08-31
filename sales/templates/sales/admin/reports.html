@@ -34,6 +34,35 @@
 </div>
 
 <div class="card">
+  <h3>Payment Method Analysis</h3>
+  <table>
+    <thead>
+      <tr><th>Method</th><th>Sales</th><th>Transactions</th><th>Share</th></tr>
+    </thead>
+    <tbody>
+      {% for p in payment_analysis %}
+      <tr>
+        <td><span class="badge {{ p.badge }}">{{ p.label }}</span></td>
+        <td>KES {{ p.total|floatformat:2 }}</td>
+        <td>{{ p.count }}</td>
+        <td>{{ p.pct }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h3>Payment Trend</h3>
+  <div style="display:flex; gap:16px; flex-wrap:wrap; margin-bottom:8px;">
+    <span style="font-size:0.85em;"><span style="display:inline-block;width:12px;height:12px;background:#18794e;border-radius:3px;vertical-align:middle;"></span> Cash</span>
+    <span style="font-size:0.85em;"><span style="display:inline-block;width:12px;height:12px;background:#b54708;border-radius:3px;vertical-align:middle;"></span> Mpesa</span>
+    <span style="font-size:0.85em;"><span style="display:inline-block;width:12px;height:12px;background:#d92d20;border-radius:3px;vertical-align:middle;"></span> Credit</span>
+  </div>
+  {{ payment_chart|safe }}
+</div>
+
+<div class="card">
   <h3>Sales by Item</h3>
   <table>
     <thead>
@@ -61,6 +90,20 @@
       {% endfor %}
     </tbody>
   </table>
+</div>
+
+<div class="card">
+  <h3>Stock Analysis</h3>
+  <div style="display:flex; gap:16px; flex-wrap:wrap; margin-bottom:8px;">
+    <span style="font-size:0.85em;"><span style="display:inline-block;width:12px;height:12px;background:#18794e;border-radius:3px;vertical-align:middle;"></span> Opening (kg)</span>
+    <span style="font-size:0.85em;"><span style="display:inline-block;width:12px;height:12px;background:#d92d20;border-radius:3px;vertical-align:middle;"></span> Sold (kg)</span>
+    <span style="font-size:0.85em;"><span style="display:inline-block;width:12px;height:12px;background:#b54708;border-radius:3px;vertical-align:middle;"></span> Remaining (kg)</span>
+  </div>
+  {% if has_stock_data %}
+    {{ stock_chart|safe }}
+  {% else %}
+    <p class="empty">No stock data in this date range.</p>
+  {% endif %}
 </div>
 
 {% endblock %}
