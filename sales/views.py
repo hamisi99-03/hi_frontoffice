@@ -580,9 +580,6 @@ def credit_ledger(request):
     redirect_target = f"/credit/?{query_string}" if query_string else "credit_ledger"
 
     if request.method == "POST" and "delete_payment" in request.POST:
-        if not request.user.is_staff:
-            messages.error(request, "You are not allowed to delete payments.")
-            return redirect(redirect_target)
         payment = get_object_or_404(CreditPayment, pk=request.POST.get("payment_id"))
         payment.delete()
         messages.success(request, "Payment deleted.")

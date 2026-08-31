@@ -132,13 +132,11 @@
         <td>{{ p.note }}</td>
         <td>{{ p.created_by.username|default:"—" }}</td>
         <td>
-          {% if user.is_staff %}
           <form method="post" onsubmit="return confirm('Delete this payment?')" style="display:inline">
             {% csrf_token %}
             <input type="hidden" name="payment_id" value="{{ p.pk }}">
             <button type="submit" name="delete_payment" class="danger">Delete</button>
           </form>
-          {% endif %}
         </td>
       </tr>
       {% empty %}
