@@ -573,6 +573,20 @@ def creditor_statement(request):
 @login_required
 def credit_ledger(request):
     q = request.GET.get("q", "").strip()
+    date_from = request.GET.get("date_from", "")
+    date_to = request.GET.get("date_to", "")
+
+    query_string = request.META.get("QUERY_STRING", "")
+    redirect_target = f"/credit/?{query_string}" if query_string else "credit_ledger"
+
+    if request.method == "POST" and "delete_payment" in request.POST:
+        if not request.user.is_staff:
+            messages.error(request, "You are not allowed to delete payments.")
+            return redirect(redirect_target)
+        payment = get_object_or_404(CreditPayment, pk=request.POST.get("payment_id"))
+        payment.delete()
+        messages.success(request, "Payment deleted.")
+        return redirect(redirect_target)
 
     if request.method == "POST" and "settle" in request.POST:
         settle_name = normalize_customer_name(request.POST.get("customer_name", ""))
@@ -639,7 +653,7 @@ def credit_ledger(request):
                 f"Applied KES {amount:,.2f} to {settle_name}'s debts."
                 + (" Any extra was recorded as an overpayment." if remaining > 0 else ""),
             )
-        return redirect(f"/credit/?q={q}" if q else "credit_ledger")
+        return redirect(redirect_target)
 
     if request.method == "POST":
         payment_form = CreditPaymentForm(request.POST)
@@ -648,7 +662,7 @@ def credit_ledger(request):
             payment.created_by = request.user
             payment.save()
             messages.success(request, "Payment recorded.")
-            return redirect(f"/credit/?q={q}" if q else "credit_ledger")
+            return redirect(redirect_target)
     else:
         payment_form = CreditPaymentForm()
 
@@ -661,6 +675,13 @@ def credit_ledger(request):
     )
 
     payments = CreditPayment.objects.select_related("sale", "created_by")
+
+    if date_from:
+        credit_sales = credit_sales.filter(date__gte=date_from)
+        payments = payments.filter(date__gte=date_from)
+    if date_to:
+        credit_sales = credit_sales.filter(date__lte=date_to)
+        payments = payments.filter(date__lte=date_to)
 
     if q:
         q_name = normalize_customer_name(q)
@@ -683,6 +704,10 @@ def credit_ledger(request):
             customers[name]["ctp"] = sale.customer_ctp
 
     unlinked_payments = CreditPayment.objects.filter(sale__isnull=True)
+    if date_from:
+        unlinked_payments = unlinked_payments.filter(date__gte=date_from)
+    if date_to:
+        unlinked_payments = unlinked_payments.filter(date__lte=date_to)
     if q:
         q_name = normalize_customer_name(q)
         unlinked_payments = unlinked_payments.filter(
@@ -730,6 +755,8 @@ def credit_ledger(request):
         "payment_form": payment_form,
         "payments": payments,
         "q": q,
+        "date_from": date_from,
+        "date_to": date_to,
         "creditor_names": creditor_names,
         "creditor_ctps": creditor_ctps,
         "payment_mode_choices": CreditPayment.PAYMENT_MODE_CHOICES,

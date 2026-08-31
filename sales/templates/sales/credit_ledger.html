@@ -8,6 +8,8 @@
     <div class="stat"><div class="label">Total Outstanding</div><div class="value">KES {{ outstanding_total|floatformat:2 }}</div></div>
   </div>
   <form method="get" class="inline" style="margin-top:12px;">
+    <div class="field"><label>From</label><input type="date" name="date_from" value="{{ date_from }}"></div>
+    <div class="field"><label>To</label><input type="date" name="date_to" value="{{ date_to }}"></div>
     <div class="field">
       <label>Search Customer</label>
       <input type="text" name="q" value="{{ q }}" placeholder="Name or CTP batch..." list="creditor-list">
@@ -16,7 +18,7 @@
       </datalist>
     </div>
     <button type="submit">Search</button>
-    {% if q %}<a href="{% url 'credit_ledger' %}" class="clear-filter-link">Clear</a>{% endif %}
+    {% if q or date_from or date_to %}<a href="{% url 'credit_ledger' %}" class="clear-filter-link">Clear</a>{% endif %}
   </form>
 </div>
 
@@ -45,6 +47,7 @@
 <div class="card">
   <h3>{{ customer_name }}
     <span style="font-size:0.85em;color:#888;">{% if data.balance < 0 %}— overpaid KES {{ data.overpaid|floatformat:2 }}{% elif data.balance == 0 %}— settled{% else %}— owes KES {{ data.balance|floatformat:2 }}{% endif %}</span>
+    <a href="{% url 'creditor_statement' %}?name={{ customer_name|urlencode }}" style="float:right;font-size:0.85em;color:var(--amber);margin-left:12px;">Statement</a>
     <a href="{% url 'invoice_customer' %}?name={{ customer_name|urlencode }}" style="float:right;font-size:0.85em;color:var(--green);margin-left:12px;">Invoice</a>
     <a href="{% url 'receipt_customer' %}?name={{ customer_name|urlencode }}" style="float:right;font-size:0.85em;color:var(--primary);">Print Receipt</a>
   </h3>
@@ -114,7 +117,7 @@
 <div class="card">
   <h3>Recent Payments</h3>
   <table>
-    <thead><tr><th>Date</th><th>Customer</th><th>Sale</th><th>Amount</th><th>Mode</th><th>Note</th></tr></thead>
+    <thead><tr><th>Date</th><th>Customer</th><th>Sale</th><th>Amount</th><th>Mode</th><th>Note</th><th>Cashier</th><th></th></tr></thead>
     <tbody>
       {% for p in payments %}
       <tr>
@@ -124,9 +127,19 @@
         <td>KES {{ p.amount }}</td>
         <td><span class="badge {{ p.payment_mode }}">{{ p.get_payment_mode_display }}</span></td>
         <td>{{ p.note }}</td>
+        <td>{{ p.created_by.username|default:"—" }}</td>
+        <td>
+          {% if user.is_staff %}
+          <form method="post" onsubmit="return confirm('Delete this payment?')" style="display:inline">
+            {% csrf_token %}
+            <input type="hidden" name="payment_id" value="{{ p.pk }}">
+            <button type="submit" name="delete_payment" class="danger">Delete</button>
+          </form>
+          {% endif %}
+        </td>
       </tr>
       {% empty %}
-      <tr><td colspan="6" class="empty">No payments recorded yet.</td></tr>
+      <tr><td colspan="8" class="empty">No payments recorded yet.</td></tr>
       {% endfor %}
     </tbody>
   </table>

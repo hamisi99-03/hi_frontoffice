@@ -13,7 +13,6 @@ from django.utils import timezone
 
 from .forms import ItemForm, SupplierForm, SupplierPaymentForm
 from .models import (
-    CreditPayment,
     Expense,
     Item,
     OtherService,
@@ -21,7 +20,6 @@ from .models import (
     Stock,
     Supplier,
     SupplierPayment,
-    normalize_customer_name,
     normalize_expense_name,
 )
 
@@ -151,6 +149,37 @@ def admin_supplier_history(request, pk):
 
 
 @staff_member_required
+def admin_supplier_history_download(request, pk):
+    supplier = get_object_or_404(Supplier, pk=pk)
+    payments = supplier.payments.select_related("created_by").order_by("date", "id")
+
+    response = HttpResponse(content_type="text/csv")
+    response["Content-Disposition"] = (
+        f'attachment; filename="supplier_payments_{supplier.supplier_name}.csv"'
+    )
+
+    writer = csv.writer(response)
+    writer.writerow([
+        "Supplier", "Item", "Date Supplied", "Total (KES)",
+        "Date Paid", "Amount (KES)", "Mode", "Remarks", "Recorded By",
+    ])
+    for p in payments:
+        writer.writerow([
+            supplier.supplier_name,
+            supplier.item_name,
+            supplier.date_supplied.isoformat(),
+            str(supplier.total),
+            p.date.isoformat(),
+            str(p.amount),
+            p.get_payment_mode_display(),
+            p.remarks,
+            p.created_by.username if p.created_by else "",
+        ])
+
+    return response
+
+
+@staff_member_required
 def admin_sales(request):
     if request.method == "POST" and "delete_sale" in request.POST:
         sale = get_object_or_404(Sale, pk=request.POST.get("sale_id"))
@@ -202,6 +231,7 @@ def admin_expenses(request):
     date_from = request.GET.get("date_from", "")
     date_to = request.GET.get("date_to", "")
     payment = request.GET.get("payment", "")
+    selected = request.GET.get("description", "").strip()
 
     qs = Expense.objects.select_related("created_by")
     if date_from:
@@ -210,66 +240,38 @@ def admin_expenses(request):
         qs = qs.filter(date__lte=date_to)
     if payment:
         qs = qs.filter(payment_method=payment)
+    if selected:
+        qs = qs.filter(description__iexact=selected)
 
     qs = qs.order_by("-date", "-id")
+
     total = qs.aggregate(t=Sum("amount"))["t"] or Decimal("0")
 
+    descriptions = sorted({
+        normalize_expense_name(d)
+        for d in Expense.objects.values_list("description", flat=True)
+    })
+
+    grouped = {}
+    for e in qs:
+        key = normalize_expense_name(e.description) or "(blank)"
+        grouped.setdefault(key, {"total": Decimal("0"), "count": 0})
+        grouped[key]["total"] += e.amount
+        grouped[key]["count"] += 1
+    grouped_sorted = sorted(grouped.items(), key=lambda kv: kv[1]["total"], reverse=True)
+
     context = {
-        "expenses": qs[:200],
+        "expenses": qs[:500],
         "date_from": date_from,
         "date_to": date_to,
         "payment": payment,
+        "selected": selected,
         "payment_choices": Expense.PAYMENT_CHOICES,
+        "descriptions": descriptions,
+        "grouped": grouped_sorted,
         "total": total,
     }
     return render(request, "sales/admin/expenses.html", context)
-
-
-@staff_member_required
-def admin_payments(request):
-    if request.method == "POST" and "delete_payment" in request.POST:
-        payment = get_object_or_404(CreditPayment, pk=request.POST.get("payment_id"))
-        payment.delete()
-        messages.success(request, "Payment deleted.")
-        return redirect("admin_payments")
-
-    date_from = request.GET.get("date_from", "")
-    date_to = request.GET.get("date_to", "")
-    q = request.GET.get("q", "").strip()
-
-    qs = CreditPayment.objects.select_related("sale", "created_by")
-    if date_from:
-        qs = qs.filter(date__gte=date_from)
-    if date_to:
-        qs = qs.filter(date__lte=date_to)
-    if q:
-        qs = qs.filter(customer_name__icontains=q)
-
-    qs = qs.order_by("-date", "-id")
-    total = qs.aggregate(t=Sum("amount"))["t"] or Decimal("0")
-
-    grouped = {}
-    for p in qs:
-        name = normalize_customer_name(p.customer_name)
-        grouped.setdefault(name, {"payments": [], "total": Decimal("0")})
-        grouped[name]["payments"].append(p)
-        grouped[name]["total"] += p.amount
-    grouped_sorted = sorted(grouped.items(), key=lambda kv: kv[1]["total"], reverse=True)
-
-    customer_names = sorted({
-        normalize_customer_name(n)
-        for n in CreditPayment.objects.values_list("customer_name", flat=True)
-    })
-
-    context = {
-        "grouped": grouped_sorted,
-        "date_from": date_from,
-        "date_to": date_to,
-        "q": q,
-        "total": total,
-        "customer_names": customer_names,
-    }
-    return render(request, "sales/admin/payments.html", context)
 
 
 @staff_member_required
@@ -355,56 +357,6 @@ def admin_stock(request):
         "has_negatives": has_negatives,
     }
     return render(request, "sales/admin/stock.html", context)
-
-
-@staff_member_required
-def admin_expense_summary(request):
-    date_from = request.GET.get("date_from", "")
-    date_to = request.GET.get("date_to", "")
-    selected = request.GET.get("description", "").strip()
-
-    qs = Expense.objects.select_related("created_by")
-    if date_from:
-        qs = qs.filter(date__gte=date_from)
-    if date_to:
-        qs = qs.filter(date__lte=date_to)
-    qs = qs.order_by("-date", "-id")
-
-    descriptions = sorted({
-        normalize_expense_name(d)
-        for d in Expense.objects.values_list("description", flat=True)
-    })
-
-    grouped = {}
-    for e in qs:
-        key = normalize_expense_name(e.description) or "(blank)"
-        grouped.setdefault(key, {"total": Decimal("0"), "count": 0})
-        grouped[key]["total"] += e.amount
-        grouped[key]["count"] += 1
-    grouped_sorted = sorted(grouped.items(), key=lambda kv: kv[1]["total"], reverse=True)
-
-    selected_rows = []
-    selected_total = Decimal("0")
-    if selected:
-        selected_rows = [
-            e for e in qs
-            if normalize_expense_name(e.description).lower() == selected.lower()
-        ]
-        selected_total = sum((e.amount for e in selected_rows), Decimal("0"))
-
-    total = qs.aggregate(t=Sum("amount"))["t"] or Decimal("0")
-
-    context = {
-        "date_from": date_from,
-        "date_to": date_to,
-        "selected": selected,
-        "descriptions": descriptions,
-        "grouped": grouped_sorted,
-        "selected_rows": selected_rows,
-        "selected_total": selected_total,
-        "total": total,
-    }
-    return render(request, "sales/admin/expense_summary.html", context)
 
 
 def _svg_bar_chart(labels, series, width=760, height=280):
