@@ -6,13 +6,14 @@ from decimal import Decimal
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.models import User
-from django.db.models import Count, Q, Sum
+from django.db.models import Count, Min, Q, Sum
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
 from .forms import ItemForm, SupplierForm, SupplierPaymentForm
 from .models import (
+    CreditPayment,
     Expense,
     Item,
     OtherService,
@@ -447,6 +448,147 @@ def _svg_bar_chart(labels, series, width=760, height=280):
     )
 
 
+def _build_date_presets(date_from, date_to):
+    """Quick-select pills shown above the from/to date pickers."""
+    today = timezone.localdate()
+    start_of_week = today - datetime.timedelta(days=today.weekday())
+    start_of_month = today.replace(day=1)
+    last_month_end = start_of_month - datetime.timedelta(days=1)
+    last_month_start = last_month_end.replace(day=1)
+
+    ranges = [
+        ("Today", today, today),
+        ("This week", start_of_week, today),
+        ("This month", start_of_month, today),
+        ("Last month", last_month_start, last_month_end),
+        ("All time", None, None),
+    ]
+    presets = []
+    for label, df, dt in ranges:
+        df_str = df.isoformat() if df else ""
+        dt_str = dt.isoformat() if dt else ""
+        presets.append({
+            "label": label,
+            "url": f"?date_from={df_str}&date_to={dt_str}",
+            "active": (date_from == df_str) and (date_to == dt_str),
+        })
+    return presets
+
+
+def _build_debtor_aging():
+    """Current outstanding balance per customer, independent of the report's
+    date range. 'Oldest unpaid sale' is approximated as the customer's earliest
+    credit sale still contributing to a positive balance."""
+    today = timezone.localdate()
+
+    owed_rows = (
+        Sale.objects.filter(payment_method=Sale.CREDIT)
+        .exclude(customer_name="")
+        .values("customer_name")
+        .annotate(total_owed=Sum("gross"))
+    )
+
+    oldest_dates = dict(
+        Sale.objects.filter(payment_method=Sale.CREDIT)
+        .exclude(customer_name="")
+        .values("customer_name")
+        .annotate(oldest=Min("date"))
+        .values_list("customer_name", "oldest")
+    )
+
+    paid = dict(
+        CreditPayment.objects.values("customer_name")
+        .annotate(total_paid=Sum("amount"))
+        .values_list("customer_name", "total_paid")
+    )
+
+    debtors = []
+    for row in owed_rows:
+        name = row["customer_name"]
+        total_owed = row["total_owed"] or Decimal("0")
+        total_paid = paid.get(name, Decimal("0"))
+        balance = total_owed - total_paid
+        if balance <= 0:
+            continue
+
+        oldest_date = oldest_dates.get(name)
+        days_outstanding = (today - oldest_date).days if oldest_date else 0
+
+        if days_outstanding <= 7:
+            bucket_class, bucket_label = "fresh", "0-7 days"
+        elif days_outstanding <= 30:
+            bucket_class, bucket_label = "watch", "8-30 days"
+        else:
+            bucket_class, bucket_label = "overdue", "31+ days"
+
+        debtors.append({
+            "customer_name": name,
+            "balance": balance,
+            "oldest_sale_date": oldest_date,
+            "days_outstanding": days_outstanding,
+            "bucket_class": bucket_class,
+            "bucket_label": bucket_label,
+        })
+
+    debtors.sort(key=lambda d: d["days_outstanding"], reverse=True)
+    return debtors
+
+
+def _build_expense_breakdown(date_from, date_to):
+    """Expenses in the selected range grouped by exact description text."""
+    qs = Expense.objects.all()
+    if date_from:
+        qs = qs.filter(date__gte=date_from)
+    if date_to:
+        qs = qs.filter(date__lte=date_to)
+
+    return (
+        qs.values("description")
+        .annotate(total=Sum("amount"), count=Count("id"))
+        .order_by("-total")
+    )
+
+
+def _build_cashier_breakdown(date_from, date_to):
+    """Sales and expenses in the selected range grouped by created_by."""
+    sales_qs = Sale.objects.all()
+    exp_qs = Expense.objects.all()
+    if date_from:
+        sales_qs = sales_qs.filter(date__gte=date_from)
+        exp_qs = exp_qs.filter(date__gte=date_from)
+    if date_to:
+        sales_qs = sales_qs.filter(date__lte=date_to)
+        exp_qs = exp_qs.filter(date__lte=date_to)
+
+    sales_by_user = {
+        row["created_by__username"]: row
+        for row in sales_qs.values("created_by__username")
+        .annotate(sale_count=Count("id"), sale_total=Sum("gross"))
+    }
+    expenses_by_user = {
+        row["created_by__username"]: row
+        for row in exp_qs.values("created_by__username")
+        .annotate(expense_count=Count("id"), expense_total=Sum("amount"))
+    }
+
+    usernames = set(sales_by_user) | set(expenses_by_user)
+    usernames.discard(None)
+
+    breakdown = []
+    for username in usernames:
+        s = sales_by_user.get(username, {})
+        e = expenses_by_user.get(username, {})
+        breakdown.append({
+            "username": username,
+            "sale_count": s.get("sale_count", 0),
+            "sale_total": s.get("sale_total") or Decimal("0"),
+            "expense_count": e.get("expense_count", 0),
+            "expense_total": e.get("expense_total") or Decimal("0"),
+        })
+    breakdown.sort(key=lambda b: b["sale_total"], reverse=True)
+    return breakdown
+
+
 @staff_member_required
 def admin_reports(request):
     date_from = request.GET.get("date_from", "")
@@ -524,7 +666,7 @@ def admin_reports(request):
             "total": totals["credit"] or Decimal("0"),
             "count": counts["credit_count"] or 0,
             "pct": pct(totals["credit"]),
-            "color": "#eab308",
+            "color": "#d92d20",
             "badge": "CREDIT",
         },
     ]
@@ -545,7 +687,7 @@ def admin_reports(request):
         [
             ("Cash", "#18794e", [float(row["cash"] or 0) for row in daily]),
             ("Mpesa", "#b54708", [float(row["mpesa"] or 0) for row in daily]),
-            ("Credit", "#eab308", [float(row["credit"] or 0) for row in daily]),
+            ("Credit", "#d92d20", [float(row["credit"] or 0) for row in daily]),
         ],
     )
 
@@ -565,8 +707,8 @@ def admin_reports(request):
     stock_chart = _svg_bar_chart(
         [d.strftime("%d/%m") for d in stock_dates],
         [
-            ("Opening", "#18794e", opening_vals),
-            ("Sold", "#eab308", sold_vals),
+            ("Opening", "#b42318", opening_vals),
+            ("Sold", "#d92d20", sold_vals),
             ("Remaining", "#b54708", remaining_vals),
         ],
     )
@@ -584,6 +726,10 @@ def admin_reports(request):
         "stock_chart": stock_chart,
         "has_stock_data": bool(stock_dates),
         "query_string": request.META.get("QUERY_STRING", ""),
+        "date_presets": _build_date_presets(date_from, date_to),
+        "debtors": _build_debtor_aging(),
+        "expense_breakdown": _build_expense_breakdown(date_from, date_to),
+        "cashier_breakdown": _build_cashier_breakdown(date_from, date_to),
     }
     return render(request, "sales/admin/reports.html", context)
 

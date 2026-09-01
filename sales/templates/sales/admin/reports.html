@@ -2,33 +2,41 @@
 {% block title %}Reports - {{ COMPANY_NAME }}{% endblock %}
 {% block content %}
 
-<h2>Reports</h2>
+<div class="card">
+  <h2>Reports</h2>
 
-<form method="get" class="inline" style="margin-bottom:16px;">
-  <div class="field"><label>From</label><input type="date" name="date_from" value="{{ date_from }}"></div>
-  <div class="field"><label>To</label><input type="date" name="date_to" value="{{ date_to }}"></div>
-  <button type="submit">Generate</button>
+  <div class="date-presets">
+    {% for preset in date_presets %}
+      <a href="{{ preset.url }}" class="preset-pill{% if preset.active %} active{% endif %}">{{ preset.label }}</a>
+    {% endfor %}
+  </div>
+
+  <form method="get" class="inline report-filter-form">
+    <div class="field"><label>From</label><input type="date" name="date_from" value="{{ date_from }}"></div>
+    <div class="field"><label>To</label><input type="date" name="date_to" value="{{ date_to }}"></div>
+    <button type="submit">Generate</button>
+    {% if date_from or date_to %}
+    <a href="{% url 'admin_reports' %}" class="clear-filter-link">Clear</a>
+    {% endif %}
+  </form>
+
   {% if date_from or date_to %}
-  <a href="{% url 'admin_reports' %}" class="clear-filter-link">Clear</a>
+  <div class="report-actions no-print">
+    <a href="{% url 'admin_reports_export' %}?{{ query_string }}" class="btn success">Download CSV</a>
+    <button onclick="window.print()" class="secondary">Print</button>
+  </div>
   {% endif %}
-</form>
-
-{% if date_from or date_to %}
-<div style="text-align:right; margin-bottom:8px;">
-  <a href="{% url 'admin_reports_export' %}?{{ query_string }}" style="display:inline-block; background:var(--green); color:#fff; border:2px solid #0d5a38; border-radius:30px; box-shadow:#0d5a38 4px 4px 0 0; padding:0 20px; line-height:40px; font-weight:700; text-decoration:none;">Download CSV</a>
-  <button onclick="window.print()" class="secondary" style="margin-left:8px;">Print</button>
 </div>
-{% endif %}
 
 <div class="card">
   <h3>Summary</h3>
   <div class="grid">
     <div class="stat"><div class="label">Total Sales</div><div class="value">KES {{ summary.total }}</div></div>
-    <div class="stat"><div class="label">Cash</div><div class="value">KES {{ summary.cash }}</div></div>
-    <div class="stat"><div class="label">Mpesa</div><div class="value">KES {{ summary.mpesa }}</div></div>
-    <div class="stat"><div class="label">Credit</div><div class="value">KES {{ summary.credit }}</div></div>
+    <div class="stat stat--cash"><div class="label">Cash</div><div class="value">KES {{ summary.cash }}</div></div>
+    <div class="stat stat--mpesa"><div class="label">Mpesa</div><div class="value">KES {{ summary.mpesa }}</div></div>
+    <div class="stat stat--credit"><div class="label">Credit</div><div class="value">KES {{ summary.credit }}</div></div>
     <div class="stat"><div class="label">Services</div><div class="value">KES {{ services_total }}</div></div>
-    <div class="stat"><div class="label">Expenses</div><div class="value">KES {{ expenses_total }}</div></div>
+    <div class="stat stat--expense"><div class="label">Expenses</div><div class="value">KES {{ expenses_total }}</div></div>
     <div class="stat net"><div class="label">Net Cash</div><div class="value">KES {{ net }}</div></div>
   </div>
 </div>
@@ -47,6 +55,8 @@
         <td>{{ p.count }}</td>
         <td>{{ p.pct }}</td>
       </tr>
+      {% empty %}
+      <tr><td colspan="4" class="empty">No sales data in this date range.</td></tr>
       {% endfor %}
     </tbody>
   </table>
@@ -54,12 +64,80 @@
 
 <div class="card">
   <h3>Payment Trend</h3>
-  <div style="display:flex; gap:16px; flex-wrap:wrap; margin-bottom:8px;">
-    <span style="font-size:0.85em;"><span style="display:inline-block;width:12px;height:12px;background:#18794e;border-radius:3px;vertical-align:middle;"></span> Cash</span>
-    <span style="font-size:0.85em;"><span style="display:inline-block;width:12px;height:12px;background:#b54708;border-radius:3px;vertical-align:middle;"></span> Mpesa</span>
-    <span style="font-size:0.85em;"><span style="display:inline-block;width:12px;height:12px;background:#eab308;border-radius:3px;vertical-align:middle;"></span> Credit</span>
+  <div class="chart-legend">
+    <span class="legend-item"><span class="swatch swatch--cash"></span>Cash</span>
+    <span class="legend-item"><span class="swatch swatch--mpesa"></span>Mpesa</span>
+    <span class="legend-item"><span class="swatch swatch--credit"></span>Credit</span>
   </div>
   {{ payment_chart|safe }}
+</div>
+
+<div class="card">
+  <h3>Credit Aging &mdash; who owes what</h3>
+  <p class="section-note">
+    Current outstanding balances across all customers, independent of the date filter above &mdash;
+    this reflects money owed <em>right now</em>, not just credit sold in the selected range.
+  </p>
+  <table>
+    <thead>
+      <tr><th>Customer</th><th>Balance Owed</th><th>Oldest Unpaid Sale</th><th>Days Outstanding</th><th>Status</th></tr>
+    </thead>
+    <tbody>
+      {% for d in debtors %}
+      <tr>
+        <td>{{ d.customer_name }}</td>
+        <td>KES {{ d.balance|floatformat:2 }}</td>
+        <td>{{ d.oldest_sale_date }}</td>
+        <td>{{ d.days_outstanding }}</td>
+        <td><span class="badge badge--{{ d.bucket_class }}">{{ d.bucket_label }}</span></td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="5" class="empty">No outstanding credit balances.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h3>Expense Breakdown</h3>
+  <table>
+    <thead>
+      <tr><th>Description</th><th>Total (KES)</th><th>Times Recorded</th></tr>
+    </thead>
+    <tbody>
+      {% for e in expense_breakdown %}
+      <tr>
+        <td>{{ e.description }}</td>
+        <td>KES {{ e.total|floatformat:2 }}</td>
+        <td>{{ e.count }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="3" class="empty">No expenses recorded in this date range.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h3>Sales &amp; Expenses by Cashier</h3>
+  <table>
+    <thead>
+      <tr><th>Cashier</th><th>Sales Recorded</th><th>Sales Total (KES)</th><th>Expenses Recorded</th><th>Expenses Total (KES)</th></tr>
+    </thead>
+    <tbody>
+      {% for c in cashier_breakdown %}
+      <tr>
+        <td>{{ c.username }}</td>
+        <td>{{ c.sale_count }}</td>
+        <td>KES {{ c.sale_total|floatformat:2 }}</td>
+        <td>{{ c.expense_count }}</td>
+        <td>KES {{ c.expense_total|floatformat:2 }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="5" class="empty">No activity in this date range.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
 </div>
 
 <div class="card">
@@ -82,7 +160,7 @@
         <td>
           {% if row.total_kg and row.total_kg > 0 %}
             {% widthratio row.total_gross row.total_kg 1 %}
-          {% else %}—{% endif %}
+          {% else %}&mdash;{% endif %}
         </td>
       </tr>
       {% empty %}
@@ -94,10 +172,10 @@
 
 <div class="card">
   <h3>Stock Analysis</h3>
-  <div style="display:flex; gap:16px; flex-wrap:wrap; margin-bottom:8px;">
-    <span style="font-size:0.85em;"><span style="display:inline-block;width:12px;height:12px;background:#18794e;border-radius:3px;vertical-align:middle;"></span> Opening (kg)</span>
-    <span style="font-size:0.85em;"><span style="display:inline-block;width:12px;height:12px;background:#eab308;border-radius:3px;vertical-align:middle;"></span> Sold (kg)</span>
-    <span style="font-size:0.85em;"><span style="display:inline-block;width:12px;height:12px;background:#b54708;border-radius:3px;vertical-align:middle;"></span> Remaining (kg)</span>
+  <div class="chart-legend">
+    <span class="legend-item"><span class="swatch swatch--opening"></span>Opening (kg)</span>
+    <span class="legend-item"><span class="swatch swatch--credit"></span>Sold (kg)</span>
+    <span class="legend-item"><span class="swatch swatch--mpesa"></span>Remaining (kg)</span>
   </div>
   {% if has_stock_data %}
     {{ stock_chart|safe }}
@@ -105,5 +183,43 @@
     <p class="empty">No stock data in this date range.</p>
   {% endif %}
 </div>
+
+<style>
+  .date-presets { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+  .preset-pill {
+    font-size: 0.82em; font-weight: 600; text-decoration: none; color: var(--primary);
+    background: var(--primary-soft); padding: 6px 13px; border-radius: 999px;
+  }
+  .preset-pill:hover { background: var(--border); }
+  .preset-pill.active { background: var(--primary); color: white; }
+
+  .report-filter-form { margin-bottom: 4px; }
+  .report-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 12px; }
+
+  .btn {
+    display: inline-block; text-decoration: none; border-radius: 8px;
+    padding: 10px 18px; font-size: 0.94em; font-weight: 600; font-family: var(--font-body);
+  }
+  .btn.success { background: var(--green); color: white; }
+  .btn.success:hover { background: var(--green-dark); }
+
+  .section-note { font-size: 0.86em; color: var(--ink-soft); margin: -4px 0 4px; }
+
+  .chart-legend { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 10px; }
+  .legend-item { font-size: 0.85em; color: var(--ink-soft); display: inline-flex; align-items: center; gap: 6px; }
+  .swatch { display: inline-block; width: 12px; height: 12px; border-radius: 3px; }
+  .swatch--cash { background: var(--cash); }
+  .swatch--mpesa { background: var(--mpesa); }
+  .swatch--credit { background: var(--credit); }
+  .swatch--opening { background: var(--primary); }
+
+  .badge--fresh { background: var(--cash-soft); color: var(--cash); }
+  .badge--watch { background: var(--credit-soft); color: var(--credit); }
+  .badge--overdue { background: var(--red-soft); color: var(--red); }
+
+  @media print {
+    .date-presets, .report-filter-form { display: none !important; }
+  }
+</style>
 
 {% endblock %}
