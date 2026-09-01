@@ -29,6 +29,11 @@
   }
   .btn.pdf:hover { background: #14704a; }
   .btn.pdf:active { box-shadow: #0d5a38 2px 2px 0 0; transform: translate(2px, 2px); }
+  .btn.back {
+    background: #fbeee0; color: #422800; border: 2px solid #422800; box-shadow: #422800 4px 4px 0 0;
+  }
+  .btn.back:hover { background: #fff; }
+  .btn.back:active { box-shadow: #422800 2px 2px 0 0; transform: translate(2px, 2px); }
   .invoice {
     max-width: 760px; margin: 0 auto; background: #fff; padding: 28px 30px;
     border-radius: 6px; box-shadow: 0 2px 12px rgba(0,0,0,0.12); font-size: 14px;
@@ -61,7 +66,7 @@
 <body>
 
 <div class="toolbar">
-  <a href="javascript:history.back()">&laquo; Back</a>
+  <a class="btn back" href="javascript:history.back()">&laquo; Back</a>
   <span class="spacer"></span>
   <a class="btn pdf" href="?name={{ invoice.customer_name|urlencode }}&download=pdf" target="_blank" rel="noopener">Download PDF</a>
   <button class="btn print" onclick="window.print()">Print</button>

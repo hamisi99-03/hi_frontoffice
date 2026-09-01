@@ -18,6 +18,17 @@
     max-width: 360px; margin: 0 auto 12px; display: flex; gap: 8px; align-items: center;
   }
   .toolbar a { color: #b42318; text-decoration: none; font-family: Arial, sans-serif; font-size: 0.9em; }
+  .toolbar a.btn {
+    display: inline-block; cursor: pointer;
+    font-weight: 700; text-decoration: none;
+    background: #fbeee0; color: #422800;
+    border: 2px solid #422800; border-radius: 30px;
+    box-shadow: #422800 3px 3px 0 0;
+    padding: 0 16px; line-height: 30px;
+    transition: transform 0.1s ease, box-shadow 0.1s ease, background 0.15s ease;
+  }
+  .toolbar a.btn:hover { background: #fff; }
+  .toolbar a.btn:active { box-shadow: #422800 1px 1px 0 0; transform: translate(1px, 1px); }
   .toolbar button {
     margin-left: auto; background: #b42318; color: #fff; border: none;
     padding: 8px 14px; border-radius: 6px; cursor: pointer; font-weight: 600;
@@ -65,7 +76,7 @@
 <body>
 
 <div class="toolbar">
-  <a href="javascript:history.back()">&laquo; Back</a>
+  <a class="btn" href="javascript:history.back()">&laquo; Back</a>
   <button onclick="window.print()">Print</button>
 </div>
 
