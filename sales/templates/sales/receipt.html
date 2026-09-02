@@ -99,20 +99,23 @@
 
   <table>
     <thead>
-      <tr><th>Item</th><th class="qty">Qty(kg)</th><th class="price">@KES</th><th class="amt">Amount</th></tr>
+      <tr><th>Item</th><th class="qty">Qty(kg)</th>{% if not hide_costs %}<th class="price">@KES</th><th class="amt">Amount</th>{% endif %}</tr>
     </thead>
     <tbody>
       {% for sale in sales %}
       <tr>
         <td>{{ sale.item.name }}</td>
         <td class="qty">{% if sale.weight_kg %}{{ sale.weight_kg }}{% else %}—{% endif %}</td>
+        {% if not hide_costs %}
         <td class="price">{{ sale.item.price_per_kg }}</td>
         <td class="amt">{{ sale.gross }}</td>
+        {% endif %}
       </tr>
       {% endfor %}
     </tbody>
   </table>
 
+  {% if not hide_costs %}
   <div class="rule"></div>
   <table>
     <tr class="total-row">
@@ -135,6 +138,7 @@
     </tr>
     {% endif %}
   </table>
+  {% endif %}
 
   <div class="rule thick"></div>
   <div class="footer">

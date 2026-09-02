@@ -36,7 +36,7 @@ def _sale_kind_label(payment_method):
     return SALE_KIND_LABELS.get(payment_method, "SALE")
 
 
-def _receipt_context(sales, doc_type, customer="", receipt_no=""):
+def _receipt_context(sales, doc_type, customer="", receipt_no="", hide_costs=False):
     total = sum((s.gross or Decimal("0") for s in sales), Decimal("0"))
     methods = {s.payment_method for s in sales}
     if len(methods) == 1:
@@ -52,7 +52,12 @@ def _receipt_context(sales, doc_type, customer="", receipt_no=""):
         "total_paid": None,
         "balance": None,
         "show_balance": False,
+        "hide_costs": hide_costs,
     }
+
+
+def _want_hide_costs(request):
+    return request.GET.get("hide_costs", "").strip().lower() in ("1", "true", "yes", "on")
 
 
 @login_required
@@ -63,6 +68,7 @@ def receipt_sale(request, pk):
         _sale_kind_label(sale.payment_method),
         customer=sale.customer_name,
         receipt_no=sale.reference,
+        hide_costs=_want_hide_costs(request),
     )
     return render(request, "sales/receipt.html", ctx)
 
@@ -83,7 +89,7 @@ def receipt_customer(request):
         messages.error(request, f"No sales found for {name}.")
         return redirect("credit_ledger")
     sales_list = list(sales)
-    ctx = _receipt_context(sales_list, "SALES RECEIPT", customer=name)
+    ctx = _receipt_context(sales_list, "SALES RECEIPT", customer=name, hide_costs=_want_hide_costs(request))
     total_paid = sum((s.total_paid for s in sales_list), Decimal("0"))
     ctx["total_paid"] = total_paid
     ctx["balance"] = ctx["total"] - total_paid
@@ -111,7 +117,7 @@ def receipt_selected(request):
         if s.customer_name
     }
     customer = next(iter(names)) if len(names) == 1 else ""
-    ctx = _receipt_context(sales_list, "SALES RECEIPT", customer=customer)
+    ctx = _receipt_context(sales_list, "SALES RECEIPT", customer=customer, hide_costs=_want_hide_costs(request))
     return render(request, "sales/receipt.html", ctx)
 
 
