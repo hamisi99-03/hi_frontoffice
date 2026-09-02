@@ -21,8 +21,8 @@
     --cash: #18794e;
     --cash-soft: #e7f4ee;
     --mpesa: #b54708;
-    --credit: #d92d20;
-    --credit-soft: #fdeceb;
+    --credit: #eab308;
+    --credit-soft: #fdf3d0;
     --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     --bg: #f6f4f3;
     --card: #ffffff;
@@ -168,8 +168,8 @@
   .stat--cash .value { color: var(--green); }
   .stat--mpesa { background: linear-gradient(180deg, #fff 0%, #fdf1e0 100%); border-color: #f3dcb8; }
   .stat--mpesa .value { color: var(--amber); }
-  .stat--credit { background: linear-gradient(180deg, #fff 0%, var(--red-soft) 100%); border-color: #f5c6c6; }
-  .stat--credit .value { color: var(--red); }
+  .stat--credit { background: linear-gradient(180deg, #fff 0%, var(--credit-soft) 100%); border-color: #f3e8b8; }
+  .stat--credit .value { color: #a16207; }
   .stat--expense { background: linear-gradient(180deg, #fff 0%, #f1eef0 100%); border-color: #e2dcde; }
   .stat--expense .value { color: var(--muted); }
 
@@ -263,7 +263,7 @@
   .badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 0.76em; font-weight: 700; }
   .badge.CASH { background: var(--green-soft); color: #146c2e; }
   .badge.MPESA { background: #fdecd2; color: #96590a; }
-  .badge.CREDIT { background: var(--red-soft); color: #a12727; }
+  .badge.CREDIT { background: var(--credit-soft); color: #a16207; }
 
   /* ---------- Row action links ---------- */
   .row-actions { display: flex; align-items: center; gap: 10px; white-space: nowrap; }

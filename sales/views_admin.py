@@ -666,7 +666,7 @@ def admin_reports(request):
             "total": totals["credit"] or Decimal("0"),
             "count": counts["credit_count"] or 0,
             "pct": pct(totals["credit"]),
-            "color": "#d92d20",
+            "color": "#eab308",
             "badge": "CREDIT",
         },
     ]
@@ -687,7 +687,7 @@ def admin_reports(request):
         [
             ("Cash", "#18794e", [float(row["cash"] or 0) for row in daily]),
             ("Mpesa", "#b54708", [float(row["mpesa"] or 0) for row in daily]),
-            ("Credit", "#d92d20", [float(row["credit"] or 0) for row in daily]),
+            ("Credit", "#eab308", [float(row["credit"] or 0) for row in daily]),
         ],
     )
 
@@ -708,7 +708,7 @@ def admin_reports(request):
         [d.strftime("%d/%m") for d in stock_dates],
         [
             ("Opening", "#b42318", opening_vals),
-            ("Sold", "#d92d20", sold_vals),
+            ("Sold", "#eab308", sold_vals),
             ("Remaining", "#b54708", remaining_vals),
         ],
     )
