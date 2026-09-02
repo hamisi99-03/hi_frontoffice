@@ -139,14 +139,37 @@ Two actions are available once a report is generated:
 From the `hi_frontoffice/` directory:
 
 ```bash
-pip install pyinstaller
-pyinstaller meatmagic.spec --clean
+venv\Scripts\python.exe -m PyInstaller meatmagic.spec --clean
 ```
 
 The output is `dist/MEATMAGIC.exe`. This single file bundles Python, Django,
 Waitress, SQLite, the templates, and all static assets — it runs on any
 Windows machine with nothing else installed. The database is created beside
 the .exe on first launch.
+
+### Releasing an update (so the shop computer gets it)
+
+The shop updater (`update_meatmagic.ps1`) only downloads the **latest GitHub
+release's** `MEATMAGIC.exe` — pushing source code alone does nothing for the
+shop. After making changes:
+
+1. Rebuild the .exe (command above).
+2. Commit and push the source changes:
+   ```bash
+   git add <changed files>
+   git commit -m "message"
+   git push origin main
+   ```
+3. Bump the version tag and publish a GitHub release with the new `.exe`
+   attached. E.g. going from `v1.0.2` to `v1.0.3`:
+   ```bash
+   gh release create v1.0.3 dist\MEATMAGIC.exe --title v1.0.3 --notes "what changed"
+   ```
+   (or use the GitHub web UI: **Releases → Draft a new release →** attach
+   `dist\MEATMAGIC.exe`).
+4. Update `version.txt` to the new tag.
+
+Then run `update_meatmagic.bat` on the shop computer to pull the new version.
 
 ## Backing up your data
 
