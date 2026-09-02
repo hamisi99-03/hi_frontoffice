@@ -301,7 +301,8 @@
   </form>
 
   <div class="table-toolbar">
-    <button type="button" onclick="printSelected()" class="secondary">Print Selected Receipt</button>
+    <button type="button" onclick="printSelected(false)" class="secondary">Print Selected Receipt</button>
+    <button type="button" onclick="printSelected(true)" class="secondary">Print Selected (No Prices)</button>
   </div>
 
   <script>
@@ -311,7 +312,7 @@
       });
     }
 
-    function printSelected() {
+    function printSelected(hideCosts) {
       var ids = [];
       document.querySelectorAll('.sale-check:checked').forEach(function (cb) {
         ids.push(cb.value);
@@ -320,7 +321,11 @@
         alert('Select at least one sale to print.');
         return;
       }
-      window.open('{% url 'receipt_selected' %}?ids=' + ids.join(','), '_blank');
+      var url = '{% url 'receipt_selected' %}?ids=' + ids.join(',');
+      if (hideCosts) {
+        url += '&hide_costs=1';
+      }
+      window.open(url, '_blank');
     }
   </script>
 
