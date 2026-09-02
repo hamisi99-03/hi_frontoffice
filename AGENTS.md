@@ -2,6 +2,20 @@
 
 Guidance for the coding agent working on this repo (MEATMAGIC).
 
+## Working style — ALWAYS follow this
+
+Before making any change (a new feature, a fix, an update, or answering a
+question about how something works), **first ask the user to confirm the
+approach and present a plan of action**. Do not edit code, rebuild, or push
+until the user has approved the plan.
+
+- Summarise what you understand the request to be.
+- List the concrete steps you intend to take (files to change, what changes).
+- Wait for the user's go-ahead before executing.
+
+The only exceptions: purely informational questions and trivial read-only
+lookups can be answered directly.
+
 ## Project overview
 
 Django point-of-sale desktop app ("MEATMAGIC") packaged as a single Windows

@@ -87,8 +87,7 @@ if ($currentTag -eq $latestTag) {
 
     $old = Join-Path $ScriptDir 'MEATMAGIC.exe.old'
     if (Test-Path $old) { Remove-Item $old -Force }
-    if (Test-Path $ExePath) { Rename-Item $ExePath 'MEATMAGIC.exe.old' }
-    Rename-Item $tmp $ExeName
+    Move-Item -Force $tmp $ExeName
 
     Set-Content -Path $VersionFile -Value $latestTag
     Write-Host "Updated to $latestTag."
