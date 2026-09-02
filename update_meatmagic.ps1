@@ -13,6 +13,9 @@
 #
 #  Your database (db.sqlite3) and secret key (meatmagic.key)
 #  are NEVER touched - only MEATMAGIC.exe is replaced.
+#
+#  NOTE: this script does NOT call the GitHub API, so it is
+#  not affected by the 60-request-per-hour rate limit.
 # ============================================================
 
 $ErrorActionPreference = 'Stop'
@@ -25,24 +28,45 @@ $RepoName  = 'hi_frontoffice'
 $ExeName   = 'MEATMAGIC.exe'
 $ProcName  = 'MEATMAGIC'
 
-$ScriptDir  = Split-Path -Parent $MyInvocation.MyCommand.Path
+$ScriptDir   = Split-Path -Parent $MyInvocation.MyCommand.Path
 $VersionFile = Join-Path $ScriptDir 'version.txt'
 $ExePath     = Join-Path $ScriptDir $ExeName
+$LatestUrl   = "https://github.com/$RepoOwner/$RepoName/releases/latest/download/$ExeName"
+
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
 Set-Location $ScriptDir
 
 Write-Host 'MeatMagic updater - checking for a new version...'
 
-$release = Invoke-RestMethod -Uri "https://api.github.com/repos/$RepoOwner/$RepoName/releases/latest" -Headers @{ 'User-Agent' = 'meatmagic-updater' }
+# Find the latest release tag by reading the redirect Location of the
+# "latest/download" URL (no API call, so no rate limit).
+$latestTag = $null
+$req = [System.Net.HttpWebRequest]::Create($LatestUrl)
+$req.Method = 'HEAD'
+$req.AllowAutoRedirect = $false
+$req.UserAgent = 'meatmagic-updater'
+$req.Timeout = 30000
+try {
+    $resp = $req.GetResponse()
+} catch {
+    $resp = $_.Exception.Response
+}
+$location = $null
+if ($resp) {
+    $location = $resp.Headers['Location']
+    $resp.Close()
+}
+if ($location -and $location -match '/releases/download/([^/]+)/') {
+    $latestTag = $Matches[1]
+}
 
-$asset = $release.assets | Where-Object { $_.name -eq $ExeName } | Select-Object -First 1
-if (-not $asset) {
-    Write-Host 'ERROR: no MEATMAGIC.exe attached to the latest GitHub release.' -ForegroundColor Red
+if (-not $latestTag) {
+    Write-Host 'ERROR: could not find the latest MEATMAGIC.exe release.' -ForegroundColor Red
     Write-Host '       Create a release and attach dist\MEATMAGIC.exe to it.'
     exit 1
 }
 
-$latestTag = $release.tag_name
 $currentTag = ''
 if (Test-Path $VersionFile) { $currentTag = (Get-Content $VersionFile -Raw).Trim() }
 
@@ -52,7 +76,7 @@ if ($currentTag -eq $latestTag) {
     Write-Host "New version available: $latestTag (you have: $currentTag)"
     Write-Host 'Downloading...'
     $tmp = Join-Path $ScriptDir 'MEATMAGIC.exe.new'
-    Invoke-WebRequest -Uri $asset.browser_download_url -OutFile $tmp
+    Invoke-WebRequest -Uri $LatestUrl -OutFile $tmp -UseBasicParsing
 
     $running = Get-Process -Name $ProcName -ErrorAction SilentlyContinue
     if ($running) {
