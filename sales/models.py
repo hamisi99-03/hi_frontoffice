@@ -151,13 +151,14 @@ class Sale(models.Model):
 class Expense(models.Model):
     """Same idea as the DAILY EXPENSES block on the sheet."""
 
+    NONE = ""
     CASH, MPESA = "CASH", "MPESA"
-    PAYMENT_CHOICES = [(CASH, "Cash"), (MPESA, "Mpesa")]
+    PAYMENT_CHOICES = [(NONE, "— Select —"), (CASH, "Cash"), (MPESA, "Mpesa")]
 
     date = models.DateField(default=timezone.localdate, db_index=True)
     description = models.CharField(max_length=255)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
-    payment_method = models.CharField(max_length=10, choices=PAYMENT_CHOICES, default=CASH)
+    payment_method = models.CharField(max_length=10, choices=PAYMENT_CHOICES, blank=False, default=NONE)
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True
     )
@@ -165,6 +166,13 @@ class Expense(models.Model):
 
     class Meta:
         ordering = ["date", "id"]
+
+    def clean(self):
+        errors = {}
+        if self.payment_method == self.NONE:
+            errors["payment_method"] = "Please select a mode of payment."
+        if errors:
+            raise ValidationError(errors)
 
     def save(self, *args, **kwargs):
         self.description = normalize_expense_name(self.description)
@@ -203,8 +211,9 @@ class OtherService(models.Model):
 
 
 class CreditPayment(models.Model):
+    NONE = ""
     CASH, MPESA = "CASH", "MPESA"
-    PAYMENT_MODE_CHOICES = [(CASH, "Cash"), (MPESA, "M-Pesa")]
+    PAYMENT_MODE_CHOICES = [(NONE, "— Select —"), (CASH, "Cash"), (MPESA, "M-Pesa")]
 
     date = models.DateField(default=timezone.localdate, db_index=True)
     customer_name = models.CharField(max_length=100, db_index=True)
@@ -213,7 +222,7 @@ class CreditPayment(models.Model):
         help_text="Batch reference copied from the linked credit sale.",
     )
     amount = models.DecimalField(max_digits=10, decimal_places=2)
-    payment_mode = models.CharField(max_length=10, choices=PAYMENT_MODE_CHOICES, default=CASH)
+    payment_mode = models.CharField(max_length=10, choices=PAYMENT_MODE_CHOICES, blank=False, default=NONE)
     note = models.CharField(max_length=255, blank=True)
     sale = models.ForeignKey(
         Sale, on_delete=models.SET_NULL, null=True, blank=True,
@@ -227,6 +236,13 @@ class CreditPayment(models.Model):
 
     class Meta:
         ordering = ["date", "id"]
+
+    def clean(self):
+        errors = {}
+        if self.payment_mode == self.NONE:
+            errors["payment_mode"] = "Please select a mode of payment (Cash or Mpesa)."
+        if errors:
+            raise ValidationError(errors)
 
     def save(self, *args, **kwargs):
         if self.sale and not self.customer_name:
@@ -302,15 +318,16 @@ class Supplier(models.Model):
 class SupplierPayment(models.Model):
     """A single payment made against a supplier delivery."""
 
+    NONE = ""
     CASH, MPESA = "CASH", "MPESA"
-    PAYMENT_MODE_CHOICES = [(CASH, "Cash"), (MPESA, "M-Pesa")]
+    PAYMENT_MODE_CHOICES = [(NONE, "— Select —"), (CASH, "Cash"), (MPESA, "M-Pesa")]
 
     supplier = models.ForeignKey(
         Supplier, on_delete=models.CASCADE, related_name="payments"
     )
     date = models.DateField(default=timezone.localdate, db_index=True)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
-    payment_mode = models.CharField(max_length=10, choices=PAYMENT_MODE_CHOICES, default=CASH)
+    payment_mode = models.CharField(max_length=10, choices=PAYMENT_MODE_CHOICES, blank=False, default=NONE)
     remarks = models.CharField(max_length=255, blank=True)
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True
@@ -319,6 +336,13 @@ class SupplierPayment(models.Model):
 
     class Meta:
         ordering = ["-date", "-id"]
+
+    def clean(self):
+        errors = {}
+        if self.payment_mode == self.NONE:
+            errors["payment_mode"] = "Please select a mode of payment (Cash or Mpesa)."
+        if errors:
+            raise ValidationError(errors)
 
     def __str__(self):
         return f"{self.date} - {self.supplier.supplier_name} paid KES {self.amount}"

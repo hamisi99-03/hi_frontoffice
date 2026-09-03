@@ -117,7 +117,7 @@ class SupplierPaymentForm(forms.Form):
         min_value=Decimal("0.01"),
     )
     payment_mode = forms.ChoiceField(
-        choices=[(Supplier.CASH, "Cash"), (Supplier.MPESA, "Mpesa")]
+        choices=[("", "— Select —"), (Supplier.CASH, "Cash"), (Supplier.MPESA, "Mpesa")]
     )
     remarks = forms.CharField(
         required=False,
