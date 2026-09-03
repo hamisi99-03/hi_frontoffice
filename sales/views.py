@@ -80,11 +80,17 @@ def receipt_customer(request):
         messages.error(request, "Select a customer first.")
         return redirect("credit_ledger")
     name = normalize_customer_name(name)
+    date_from = _parse_date(request.GET.get("date_from", ""))
+    date_to = _parse_date(request.GET.get("date_to", ""))
     sales = (
         Sale.objects.filter(customer_name__iexact=name)
         .select_related("item")
         .order_by("date", "id")
     )
+    if date_from:
+        sales = sales.filter(date__gte=date_from)
+    if date_to:
+        sales = sales.filter(date__lte=date_to)
     if not sales.exists():
         messages.error(request, f"No sales found for {name}.")
         return redirect("credit_ledger")
@@ -94,6 +100,8 @@ def receipt_customer(request):
     ctx["total_paid"] = total_paid
     ctx["balance"] = ctx["total"] - total_paid
     ctx["show_balance"] = True
+    ctx["date_from"] = date_from
+    ctx["date_to"] = date_to
     return render(request, "sales/receipt.html", ctx)
 
 
@@ -129,11 +137,17 @@ def invoice_customer(request):
         return redirect("credit_ledger")
 
     name = normalize_customer_name(name)
+    date_from = _parse_date(request.GET.get("date_from", ""))
+    date_to = _parse_date(request.GET.get("date_to", ""))
     sales = (
         Sale.objects.filter(payment_method=Sale.CREDIT, customer_name__iexact=name)
         .select_related("item")
         .order_by("date", "id")
     )
+    if date_from:
+        sales = sales.filter(date__gte=date_from)
+    if date_to:
+        sales = sales.filter(date__lte=date_to)
     if not sales.exists():
         messages.error(request, f"No credit sales found for {name}.")
         return redirect("credit_ledger")
@@ -167,8 +181,19 @@ def invoice_customer(request):
         "total": total,
         "total_paid": total_paid,
         "balance": balance,
+        "date_from": date_from,
+        "date_to": date_to,
     }
     return render(request, "sales/invoice.html", context)
+
+
+def _parse_date(value):
+    if value:
+        try:
+            return datetime.date.fromisoformat(value)
+        except ValueError:
+            pass
+    return None
 
 
 def _selected_date(request):
@@ -523,6 +548,9 @@ def creditor_statement(request):
     if not name:
         return redirect("credit_ledger")
 
+    date_from = _parse_date(request.GET.get("date_from", ""))
+    date_to = _parse_date(request.GET.get("date_to", ""))
+
     sales = (
         Sale.objects.filter(payment_method=Sale.CREDIT, customer_name__iexact=name)
         .select_related("item")
@@ -533,6 +561,12 @@ def creditor_statement(request):
         .select_related("sale")
         .order_by("date", "id")
     )
+    if date_from:
+        sales = sales.filter(date__gte=date_from)
+        payments = payments.filter(date__gte=date_from)
+    if date_to:
+        sales = sales.filter(date__lte=date_to)
+        payments = payments.filter(date__lte=date_to)
 
     transactions = []
     for s in sales:
@@ -572,6 +606,8 @@ def creditor_statement(request):
         "total_paid": total_paid,
         "balance": total_owed - total_paid,
         "today": timezone.localdate(),
+        "date_from": date_from,
+        "date_to": date_to,
     }
     return render(request, "sales/creditor_statement.html", context)
 

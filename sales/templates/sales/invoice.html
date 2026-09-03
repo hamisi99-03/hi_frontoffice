@@ -68,7 +68,7 @@
 <div class="toolbar">
   <a class="btn back" href="javascript:history.back()">&laquo; Back</a>
   <span class="spacer"></span>
-  <a class="btn pdf" href="?name={{ invoice.customer_name|urlencode }}&download=pdf" target="_blank" rel="noopener">Download PDF</a>
+  <a class="btn pdf" href="?name={{ invoice.customer_name|urlencode }}&download=pdf{% if date_from %}&date_from={{ date_from|date:'Y-m-d' }}{% endif %}{% if date_to %}&date_to={{ date_to|date:'Y-m-d' }}{% endif %}" target="_blank" rel="noopener">Download PDF</a>
   <button class="btn print" onclick="window.print()">Print</button>
 </div>
 
@@ -94,6 +94,12 @@
       <div class="k">Date</div>
       <div>{{ invoice.date|date:"d/m/Y" }}</div>
     </div>
+    {% if date_from or date_to %}
+    <div>
+      <div class="k">Period</div>
+      <div>{% if date_from %}{{ date_from|date:"d/m/Y" }}{% endif %}{% if date_from and date_to %} - {% endif %}{% if date_to %}{{ date_to|date:"d/m/Y" }}{% endif %}</div>
+    </div>
+    {% endif %}
   </div>
 
   <table>

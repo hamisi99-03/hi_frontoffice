@@ -50,9 +50,9 @@
 <div class="card">
   <h3>{{ customer_name }}
     <span style="font-size:0.85em;color:#888;">{% if data.balance < 0 %}— overpaid KES {{ data.overpaid|floatformat:2 }}{% elif data.balance == 0 %}— settled{% else %}— owes KES {{ data.balance|floatformat:2 }}{% endif %}</span>
-    <a href="{% url 'creditor_statement' %}?name={{ customer_name|urlencode }}" style="float:right;font-size:0.85em;color:var(--amber);margin-left:12px;">Statement</a>
-    <a href="{% url 'invoice_customer' %}?name={{ customer_name|urlencode }}" style="float:right;font-size:0.85em;color:var(--green);margin-left:12px;">Invoice</a>
-    <a href="{% url 'receipt_customer' %}?name={{ customer_name|urlencode }}" style="float:right;font-size:0.85em;color:var(--primary);">Print Receipt</a>
+    <a href="{% url 'creditor_statement' %}?name={{ customer_name|urlencode }}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}" style="float:right;font-size:0.85em;color:var(--amber);margin-left:12px;">Statement</a>
+    <a href="{% url 'invoice_customer' %}?name={{ customer_name|urlencode }}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}" style="float:right;font-size:0.85em;color:var(--green);margin-left:12px;">Invoice</a>
+    <a href="{% url 'receipt_customer' %}?name={{ customer_name|urlencode }}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}" style="float:right;font-size:0.85em;color:var(--primary);">Print Receipt</a>
   </h3>
   {% if data.paid_count %}
   <div class="paid-toggle-row">
