@@ -29,9 +29,15 @@ SECRET_KEY = os.environ.get(
 )
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# Off by default for internet exposure; set MEATMAGIC_DEBUG=1 for development.
+DEBUG = os.environ.get("MEATMAGIC_DEBUG", "0") == "1"
 
-ALLOWED_HOSTS = ['*']  # standalone shop-LAN use only - see README before exposing this to the internet
+ALLOWED_HOSTS = ['*']  # LAN + Cloudflare Tunnel access
+
+# Requests arrive over Cloudflare Tunnel as plain HTTP (TLS is terminated at
+# Cloudflare) with the original scheme carried in X-Forwarded-Proto. Trust that
+# header so HTTPS is detected correctly (CSRF, secure cookies, etc.).
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 
 # Company branding used on receipts, invoices and printed documents.
