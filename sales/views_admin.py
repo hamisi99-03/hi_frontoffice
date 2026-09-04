@@ -46,14 +46,7 @@ def admin_salaries(request):
             else:
                 emp.save()
                 messages.success(request, f"{emp.name}'s base salary updated.")
-            return redirect("admin_salaries")
-        elif "toggle_hidden" in request.POST:
-            emp = get_object_or_404(Employee, pk=request.POST.get("employee_id"))
-            emp.active = not emp.active
-            emp.save()
-            state = "unhidden" if emp.active else "hidden"
-            messages.success(request, f"{emp.name} {state}.")
-            return redirect("admin_salaries")
+            return redirect_with_month(request)
         elif "add_payment" in request.POST:
             emp = get_object_or_404(Employee, pk=request.POST.get("employee_id"))
             raw_amount = request.POST.get("amount", "").strip()
@@ -78,67 +71,98 @@ def admin_salaries(request):
                     created_by=request.user,
                 )
                 messages.success(request, f"Payment of KES {amount:,.2f} added for {emp.name}.")
-            return redirect("admin_salaries")
+            return redirect_with_month(request)
         elif "delete_payment" in request.POST:
             payment = get_object_or_404(EmployeePayment, pk=request.POST.get("payment_id"))
             employee_name = payment.employee.name
             payment.delete()
             messages.success(request, f"Payment deleted for {employee_name}.")
-            return redirect("admin_salaries")
+            return redirect_with_month(request)
 
-    employees = Employee.objects.all()
+    month = _selected_month(request)
+    month_start = month.replace(day=1)
+    if month.month == 12:
+        month_end = month.replace(year=month.year + 1, month=1, day=1) - datetime.timedelta(days=1)
+    else:
+        month_end = month.replace(month=month.month + 1, day=1) - datetime.timedelta(days=1)
 
-    credit_totals = dict(
-        Sale.objects.filter(payment_method=Sale.CREDIT)
-        .values("customer_name")
-        .annotate(total=Sum("gross"))
-        .values_list("customer_name", "total")
+    employees = Employee.objects.filter(active=True)
+
+    credit_by_name = {}
+    credit_sales = (
+        Sale.objects.filter(payment_method=Sale.CREDIT, date__gte=month_start, date__lte=month_end)
+        .select_related("item")
+        .order_by("date", "id")
     )
+    for sale in credit_sales:
+        name = normalize_customer_name(sale.customer_name).lower()
+        credit_by_name.setdefault(name, {"total": Decimal("0"), "items": []})
+        credit_by_name[name]["total"] += sale.gross
+        credit_by_name[name]["items"].append(sale)
 
-    expense_totals = dict(
-        Expense.objects.values("description")
-        .annotate(total=Sum("amount"))
-        .values_list("description", "total")
-    )
+    expense_by_name = {}
+    for exp in Expense.objects.filter(date__gte=month_start, date__lte=month_end).order_by("date", "id"):
+        name = normalize_expense_name(exp.description).lower()
+        expense_by_name.setdefault(name, {"total": Decimal("0"), "items": []})
+        expense_by_name[name]["total"] += exp.amount
+        expense_by_name[name]["items"].append(exp)
 
-    payment_totals = dict(
-        EmployeePayment.objects.values("employee_id")
-        .annotate(total=Sum("amount"))
-        .values_list("employee_id", "total")
+    payments_by_emp = {}
+    payments_qs = (
+        EmployeePayment.objects.filter(date__gte=month_start, date__lte=month_end)
+        .select_related("created_by")
+        .order_by("date", "id")
     )
+    for pay in payments_qs:
+        payments_by_emp.setdefault(pay.employee_id, {"total": Decimal("0"), "items": []})
+        payments_by_emp[pay.employee_id]["total"] += pay.amount
+        payments_by_emp[pay.employee_id]["items"].append(pay)
 
     rows = []
     for emp in employees:
         name = emp.name.lower()
-        credit = Decimal("0")
-        exp = Decimal("0")
-        for raw_name, total in credit_totals.items():
-            if normalize_customer_name(raw_name).lower() == name and total:
-                credit += total
-        for raw_desc, total in expense_totals.items():
-            if normalize_expense_name(raw_desc).lower() == name and total:
-                exp += total
-        paid = payment_totals.get(emp.pk, Decimal("0"))
-        net = emp.base_salary - credit - exp - paid
+        credit = credit_by_name.get(name, {"total": Decimal("0"), "items": []})
+        expense = expense_by_name.get(name, {"total": Decimal("0"), "items": []})
+        payments = payments_by_emp.get(emp.pk, {"total": Decimal("0"), "items": []})
+        net = emp.base_salary - credit["total"] - expense["total"] - payments["total"]
         rows.append({
             "employee": emp,
-            "credit": credit,
-            "expense": exp,
-            "paid": paid,
+            "credit_total": credit["total"],
+            "credit_items": credit["items"],
+            "expense_total": expense["total"],
+            "expense_items": expense["items"],
+            "paid_total": payments["total"],
+            "payments": payments["items"],
             "net": net,
-            "payments": list(emp.payments.select_related("created_by")[:50]),
         })
 
-    visible = [r for r in rows if r["employee"].active]
-    hidden = [r for r in rows if not r["employee"].active]
-
     context = {
-        "visible": visible,
-        "hidden": hidden,
+        "rows": rows,
         "form": EmployeeForm(),
         "today": timezone.localdate().isoformat(),
+        "month": month,
+        "month_label": month.strftime("%B %Y"),
+        "prev_month": (month_start - datetime.timedelta(days=1)).replace(day=1),
+        "next_month": (month_end + datetime.timedelta(days=1)).replace(day=1),
     }
     return render(request, "sales/admin/salaries.html", context)
+
+
+def _selected_month(request):
+    raw = request.GET.get("month") or request.POST.get("month")
+    if raw:
+        try:
+            return datetime.date.fromisoformat(raw + "-01")
+        except ValueError:
+            pass
+    return timezone.localdate().replace(day=1)
+
+
+def redirect_with_month(request):
+    raw = request.GET.get("month") or request.POST.get("month")
+    if raw:
+        return redirect(f"/manage/salaries/?month={raw}")
+    return redirect("admin_salaries")
 
 
 @staff_member_required
