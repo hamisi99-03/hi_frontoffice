@@ -72,22 +72,22 @@
     <thead><tr><th>Date</th><th>CTP</th><th>Item</th><th>Gross</th><th>Paid</th><th>Balance</th><th class="pay-col">Pay Now</th></tr></thead>
     <tbody>
       {% for sale in data.sales %}
-      <tr{% if sale._balance <= 0 %} class="paid-row"{% endif %}>
+      <tr{% if sale.sale_balance <= 0 %} class="paid-row"{% endif %}>
         <td>{{ sale.date }}</td>
         <td>{% if sale.customer_ctp %}{{ sale.customer_ctp }}{% else %}—{% endif %}</td>
         <td>{{ sale.item.name }}</td>
         <td>KES {{ sale.gross|floatformat:2 }}</td>
-        <td>KES {{ sale._paid|floatformat:2 }}</td>
-        <td {% if sale._balance > 0 %}style="color:var(--red);font-weight:600;"{% endif %}>
-          KES {{ sale._balance|floatformat:2 }}
+        <td>KES {{ sale.sale_paid|floatformat:2 }}</td>
+        <td {% if sale.sale_balance > 0 %}style="color:var(--red);font-weight:600;"{% endif %}>
+          KES {{ sale.sale_balance|floatformat:2 }}
         </td>
         <td class="pay-col">
-          {% if sale._balance > 0 %}
+          {% if sale.sale_balance > 0 %}
           <form method="post" class="pay-inline" onsubmit="disableSubmit(this)">
             {% csrf_token %}
             <input type="hidden" name="sale" value="{{ sale.pk }}">
             <input type="hidden" name="customer_name" value="{{ customer_name }}">
-            <input type="number" name="amount" step="0.01" min="1" max="{{ sale._balance }}" value="{{ sale._balance }}" class="pay-amt" title="Amount (KES)">
+            <input type="number" name="amount" step="0.01" min="1" max="{{ sale.sale_balance }}" value="{{ sale.sale_balance }}" class="pay-amt" title="Amount (KES)">
             <select name="payment_mode" class="pay-mode">
               {% for code, label in payment_mode_choices %}
               <option value="{{ code }}">{{ label }}</option>

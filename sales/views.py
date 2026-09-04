@@ -762,12 +762,12 @@ def credit_ledger(request):
         for row in CreditPayment.objects.filter(sale__isnull=False).values("sale_id").annotate(total=Sum("amount"))
     }
 
-    for name, data in customers.items():
+    for data in customers.values():
         for s in data["sales"]:
             s_paid = paid_by_sale.get(s.pk, Decimal("0"))
             data["total_paid"] += s_paid
-            s._paid = s_paid
-            s._balance = s.gross - s_paid
+            s.sale_paid = s_paid
+            s.sale_balance = s.gross - s_paid
 
     unlinked_payments = CreditPayment.objects.filter(sale__isnull=True)
     if date_from:
@@ -791,7 +791,7 @@ def credit_ledger(request):
 
     for c in customers.values():
         c["balance"] = c["total_owed"] - c["total_paid"]
-        c["paid_count"] = sum(1 for s in c["sales"] if s._balance <= 0)
+        c["paid_count"] = sum(1 for s in c["sales"] if s.sale_balance <= 0)
         if c["balance"] < 0:
             c["overpaid"] = -c["balance"]
     sorted_customers = sorted(customers.items(), key=lambda x: x[1]["balance"], reverse=True)
