@@ -28,6 +28,40 @@ class Creditor(models.Model):
         return self.name
 
 
+class Employee(models.Model):
+    """A staff member paid a base salary less any goods taken on credit,
+    cash advanced through the expenses log, and external payments."""
+
+    name = models.CharField(max_length=100, unique=True)
+    base_salary = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    active = models.BooleanField(
+        default=True,
+        help_text="Untick to hide this employee from the salaries page.",
+    )
+
+    class Meta:
+        ordering = ["name"]
+
+    def __str__(self):
+        return self.name
+
+
+class EmployeePayment(models.Model):
+    """A cash advance / direct payment given to an employee."""
+
+    employee = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name="payments")
+    date = models.DateField(default=timezone.localdate, db_index=True)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    note = models.CharField(max_length=255, blank=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-date", "-id"]
+
+
 class Item(models.Model):
     """One row of the price list (was columns P:Q in the spreadsheet)."""
 

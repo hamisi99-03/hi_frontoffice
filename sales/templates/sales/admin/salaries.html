@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+{% block title %}Salaries - {{ COMPANY_NAME }}{% endblock %}
+{% block content %}
+
+<h2>Salaries</h2>
+
+<div class="card">
+  <h3>Add Employee</h3>
+  <form method="post" class="inline">
+    {% csrf_token %}
+    <div class="field"><label>Name</label>{{ form.name }}{{ form.name.errors }}</div>
+    <div class="field"><label>Base Salary (KES)</label>{{ form.base_salary }}{{ form.base_salary.errors }}</div>
+    <button type="submit" name="add_employee" value="1">Add Employee</button>
+  </form>
+</div>
+
+{% if visible %}
+<div class="salary-tabs">
+  <div class="tab-list" role="tablist">
+    {% for row in visible %}
+    <button type="button" class="tab-btn{% if forloop.first %} active{% endif %}" role="tab" data-tab="emp-{{ row.employee.pk }}">{{ row.employee.name }}</button>
+    {% endfor %}
+  </div>
+  {% for row in visible %}
+  <div class="tab-panel{% if forloop.first %} active{% endif %}" id="emp-{{ row.employee.pk }}" role="tabpanel">
+    <div class="card">
+      <div class="salary-head">
+        <h3>{{ row.employee.name }}</h3>
+        <form method="post" onsubmit="return confirm('Hide {{ row.employee.name }}? They will move to Hidden employees.')" style="display:inline">
+          {% csrf_token %}
+          <input type="hidden" name="employee_id" value="{{ row.employee.pk }}">
+          <input type="hidden" name="toggle_hidden" value="1">
+          <button type="submit" class="secondary">Hide Employee</button>
+        </form>
+      </div>
+
+      <form method="post" class="inline" style="margin-bottom:16px;">
+        {% csrf_token %}
+        <input type="hidden" name="employee_id" value="{{ row.employee.pk }}">
+        <div class="field"><label>Base Salary (KES)</label><input type="number" step="0.01" name="base_salary" value="{{ row.employee.base_salary|floatformat:2 }}"></div>
+        <button type="submit" name="update_salary" value="1">Save Salary</button>
+      </form>
+
+      <div class="grid">
+        <div class="stat"><div class="label">Base Salary</div><div class="value">KES {{ row.employee.base_salary|floatformat:2 }}</div></div>
+        <div class="stat stat--credit"><div class="label">Goods on Credit</div><div class="value">KES {{ row.credit|floatformat:2 }}</div></div>
+        <div class="stat stat--expense"><div class="label">Given via Expenses</div><div class="value">KES {{ row.expense|floatformat:2 }}</div></div>
+        <div class="stat stat--expense"><div class="label">External Payments</div><div class="value">KES {{ row.paid|floatformat:2 }}</div></div>
+        <div class="stat net"><div class="label">Remaining</div><div class="value">KES {{ row.net|floatformat:2 }}</div></div>
+      </div>
+
+      <div class="card" style="box-shadow:none;border:1px dashed var(--border);">
+        <h3 style="font-size:1em;">Add External Payment</h3>
+        <form method="post" class="inline">
+          {% csrf_token %}
+          <input type="hidden" name="employee_id" value="{{ row.employee.pk }}">
+          <div class="field"><label>Date</label><input type="date" name="date" value="{{ today }}"></div>
+          <div class="field"><label>Amount (KES)</label><input type="number" step="0.01" name="amount" placeholder="KES" min="0.01"></div>
+          <div class="field"><label>Note</label><input type="text" name="note" placeholder="Optional"></div>
+          <button type="submit" name="add_payment" value="1">Add Payment</button>
+        </form>
+        {% if row.payments %}
+        <table style="margin-top:12px;">
+          <thead><tr><th>Date</th><th>Amount</th><th>Note</th><th>Recorded By</th><th></th></tr></thead>
+          <tbody>
+            {% for p in row.payments %}
+            <tr>
+              <td>{{ p.date }}</td>
+              <td>KES {{ p.amount|floatformat:2 }}</td>
+              <td>{{ p.note|default:"—" }}</td>
+              <td>{{ p.created_by.username|default:"—" }}</td>
+              <td>
+                <form method="post" onsubmit="return confirm('Delete this payment?')" style="display:inline">
+                  {% csrf_token %}
+                  <input type="hidden" name="payment_id" value="{{ p.pk }}">
+                  <button type="submit" name="delete_payment" class="danger">Delete</button>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% endif %}
+      </div>
+
+      <table>
+        <thead><tr><th>Description</th><th>Type</th><th>Amount</th></tr></thead>
+        <tbody>
+          <tr><td>Base salary</td><td>Pay</td><td>KES {{ row.employee.base_salary|floatformat:2 }}</td></tr>
+          <tr><td>Goods taken on credit</td><td>Deduction</td><td style="color:var(--red);">− KES {{ row.credit|floatformat:2 }}</td></tr>
+          <tr><td>Given through expenses</td><td>Deduction</td><td style="color:var(--red);">− KES {{ row.expense|floatformat:2 }}</td></tr>
+          <tr><td>External payments</td><td>Deduction</td><td style="color:var(--red);">− KES {{ row.paid|floatformat:2 }}</td></tr>
+          <tr><td><strong>Remaining (to be given)</strong></td><td><strong>Balance</strong></td><td><strong>KES {{ row.net|floatformat:2 }}</strong></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="card"><p class="empty">No visible employees. Add one above or unhide from below.</p></div>
+{% endif %}
+
+{% if hidden %}
+<div class="card">
+  <h3>Hidden Employees</h3>
+  <table>
+    <thead><tr><th>Name</th><th>Base Salary</th><th>Goods on Credit</th><th>Given via Expenses</th><th>External Payments</th><th>Remaining</th><th></th></tr></thead>
+    <tbody>
+      {% for row in hidden %}
+      <tr>
+        <td>{{ row.employee.name }}</td>
+        <td>KES {{ row.employee.base_salary|floatformat:2 }}</td>
+        <td>KES {{ row.credit|floatformat:2 }}</td>
+        <td>KES {{ row.expense|floatformat:2 }}</td>
+        <td>KES {{ row.paid|floatformat:2 }}</td>
+        <td>KES {{ row.net|floatformat:2 }}</td>
+        <td>
+          <form method="post" style="display:inline">
+            {% csrf_token %}
+            <input type="hidden" name="employee_id" value="{{ row.employee.pk }}">
+            <button type="submit" name="toggle_hidden" value="1" class="secondary">Unhide</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+<style>
+  .salary-tabs { margin-bottom: 0; }
+  .tab-list { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 0; }
+  .tab-btn {
+    background: #f1e8e6; color: #5a2320; border: 1px solid #e3d8d6;
+    box-shadow: none; border-radius: 10px 10px 0 0; line-height: 1.2;
+    padding: 10px 18px; font-size: 0.95em; font-weight: 700;
+  }
+  .tab-btn.active { background: var(--primary); color: #fff; border-color: var(--primary-deep); }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+  .tab-panel .card { border-top-left-radius: 0; }
+  .salary-head { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+  .salary-head h3 { margin: 0; }
+</style>
+
+<script>
+  document.querySelectorAll('.tab-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var list = btn.closest('.salary-tabs');
+      list.querySelectorAll('.tab-btn').forEach(function (b) { b.classList.remove('active'); });
+      list.querySelectorAll('.tab-panel').forEach(function (p) { p.classList.remove('active'); });
+      btn.classList.add('active');
+      var panel = document.getElementById(btn.getAttribute('data-tab'));
+      if (panel) panel.classList.add('active');
+    });
+  });
+</script>
+
+{% endblock %}

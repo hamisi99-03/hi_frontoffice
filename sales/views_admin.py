@@ -11,9 +11,11 @@ from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
-from .forms import ItemForm, SupplierForm, SupplierPaymentForm
+from .forms import EmployeeForm, ItemForm, SupplierForm, SupplierPaymentForm
 from .models import (
     CreditPayment,
+    Employee,
+    EmployeePayment,
     Expense,
     Item,
     OtherService,
@@ -21,8 +23,122 @@ from .models import (
     Stock,
     Supplier,
     SupplierPayment,
+    normalize_customer_name,
     normalize_expense_name,
 )
+
+
+@staff_member_required
+def admin_salaries(request):
+    if request.method == "POST":
+        if "add_employee" in request.POST:
+            form = EmployeeForm(request.POST)
+            if form.is_valid():
+                form.save()
+                messages.success(request, "Employee added.")
+                return redirect("admin_salaries")
+        elif "update_salary" in request.POST:
+            emp = get_object_or_404(Employee, pk=request.POST.get("employee_id"))
+            try:
+                emp.base_salary = Decimal(request.POST.get("base_salary"))
+            except Exception:
+                messages.error(request, "Invalid salary amount.")
+            else:
+                emp.save()
+                messages.success(request, f"{emp.name}'s base salary updated.")
+            return redirect("admin_salaries")
+        elif "toggle_hidden" in request.POST:
+            emp = get_object_or_404(Employee, pk=request.POST.get("employee_id"))
+            emp.active = not emp.active
+            emp.save()
+            state = "unhidden" if emp.active else "hidden"
+            messages.success(request, f"{emp.name} {state}.")
+            return redirect("admin_salaries")
+        elif "add_payment" in request.POST:
+            emp = get_object_or_404(Employee, pk=request.POST.get("employee_id"))
+            raw_amount = request.POST.get("amount", "").strip()
+            note = request.POST.get("note", "").strip()
+            raw_date = request.POST.get("date", "")
+            try:
+                amount = Decimal(raw_amount)
+            except Exception:
+                amount = Decimal("0")
+            if amount <= 0:
+                messages.error(request, "Enter a valid payment amount.")
+            else:
+                try:
+                    pay_date = datetime.date.fromisoformat(raw_date) if raw_date else timezone.localdate()
+                except ValueError:
+                    pay_date = timezone.localdate()
+                EmployeePayment.objects.create(
+                    employee=emp,
+                    date=pay_date,
+                    amount=amount,
+                    note=note,
+                    created_by=request.user,
+                )
+                messages.success(request, f"Payment of KES {amount:,.2f} added for {emp.name}.")
+            return redirect("admin_salaries")
+        elif "delete_payment" in request.POST:
+            payment = get_object_or_404(EmployeePayment, pk=request.POST.get("payment_id"))
+            employee_name = payment.employee.name
+            payment.delete()
+            messages.success(request, f"Payment deleted for {employee_name}.")
+            return redirect("admin_salaries")
+
+    employees = Employee.objects.all()
+
+    credit_totals = dict(
+        Sale.objects.filter(payment_method=Sale.CREDIT)
+        .values("customer_name")
+        .annotate(total=Sum("gross"))
+        .values_list("customer_name", "total")
+    )
+
+    expense_totals = dict(
+        Expense.objects.values("description")
+        .annotate(total=Sum("amount"))
+        .values_list("description", "total")
+    )
+
+    payment_totals = dict(
+        EmployeePayment.objects.values("employee_id")
+        .annotate(total=Sum("amount"))
+        .values_list("employee_id", "total")
+    )
+
+    rows = []
+    for emp in employees:
+        name = emp.name.lower()
+        credit = Decimal("0")
+        exp = Decimal("0")
+        for raw_name, total in credit_totals.items():
+            if normalize_customer_name(raw_name).lower() == name and total:
+                credit += total
+        for raw_desc, total in expense_totals.items():
+            if normalize_expense_name(raw_desc).lower() == name and total:
+                exp += total
+        paid = payment_totals.get(emp.pk, Decimal("0"))
+        net = emp.base_salary - credit - exp - paid
+        rows.append({
+            "employee": emp,
+            "credit": credit,
+            "expense": exp,
+            "paid": paid,
+            "net": net,
+            "payments": list(emp.payments.select_related("created_by")[:50]),
+        })
+
+    visible = [r for r in rows if r["employee"].active]
+    hidden = [r for r in rows if not r["employee"].active]
+
+    context = {
+        "visible": visible,
+        "hidden": hidden,
+        "form": EmployeeForm(),
+        "today": timezone.localdate().isoformat(),
+    }
+    return render(request, "sales/admin/salaries.html", context)
 
 
 @staff_member_required

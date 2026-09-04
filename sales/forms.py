@@ -2,7 +2,7 @@ from decimal import Decimal
 
 from django import forms
 
-from .models import CreditPayment, Expense, Item, OtherService, Sale, Sale, Supplier
+from .models import CreditPayment, Employee, Expense, Item, OtherService, Sale, Supplier
 
 
 class SaleForm(forms.ModelForm):
@@ -123,3 +123,12 @@ class SupplierPaymentForm(forms.Form):
         required=False,
         widget=forms.TextInput(attrs={"placeholder": "Optional"}),
     )
+
+
+class EmployeeForm(forms.ModelForm):
+    class Meta:
+        model = Employee
+        fields = ["name", "base_salary"]
+        widgets = {
+            "base_salary": forms.NumberInput(attrs={"step": "0.01", "placeholder": "KES"}),
+        }
