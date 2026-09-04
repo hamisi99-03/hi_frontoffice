@@ -60,9 +60,9 @@ def admin_salaries(request):
                 messages.error(request, "Enter a valid payment amount.")
             else:
                 try:
-                    pay_date = datetime.date.fromisoformat(raw_date) if raw_date else timezone.localdate()
+                    pay_date = datetime.date.fromisoformat(raw_date) if raw_date else _selected_month(request)
                 except ValueError:
-                    pay_date = timezone.localdate()
+                    pay_date = _selected_month(request)
                 EmployeePayment.objects.create(
                     employee=emp,
                     date=pay_date,

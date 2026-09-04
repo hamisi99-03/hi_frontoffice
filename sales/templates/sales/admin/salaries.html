@@ -103,7 +103,7 @@
           {% csrf_token %}
           <input type="hidden" name="month" value="{{ month|date:'Y-m' }}">
           <input type="hidden" name="employee_id" value="{{ row.employee.pk }}">
-          <div class="field"><label>Date</label><input type="date" name="date" value="{{ today }}"></div>
+          <div class="field"><label>Date</label><input type="date" name="date" value="{{ month|date:'Y-m-d' }}"></div>
           <div class="field"><label>Amount (KES)</label><input type="number" step="0.01" name="amount" placeholder="KES" min="0.01"></div>
           <div class="field"><label>Note</label><input type="text" name="note" placeholder="Optional"></div>
           <button type="submit" name="add_payment" value="1">Add Payment</button>
