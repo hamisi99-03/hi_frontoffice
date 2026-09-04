@@ -308,6 +308,49 @@
     th { background: #ddd; color: #000; }
     tbody tr:nth-child(even) { background: transparent; }
   }
+
+  /* ---------- Remote session banner ---------- */
+  .remote-banner {
+    display: flex; align-items: center; gap: 10px;
+    background: #fff7e6;
+    border: 1px solid #f0d9a8;
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin-bottom: 16px;
+    font-size: 0.9em; font-weight: 600; color: #7a4a04;
+  }
+  .remote-dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: #e8a020; flex-shrink: 0;
+    animation: remote-pulse 2s infinite;
+  }
+  @keyframes remote-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(232, 160, 32, 0.5); }
+    50% { box-shadow: 0 0 0 6px rgba(232, 160, 32, 0); }
+  }
+
+  /* ---------- Responsive / mobile ---------- */
+  .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+  @media (max-width: 760px) {
+    header { padding: 0 12px; }
+    header .brand { font-size: 1.1em; padding: 12px 10px 12px 0; }
+    header a { padding: 14px 10px; font-size: 0.9em; }
+    main { margin: 16px auto; padding: 0 12px; }
+    .card { padding: 14px; }
+    h1 { font-size: 1.4em; }
+    h2 { font-size: 1.2em; }
+    .grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .stat .value { font-size: 1.3em; }
+    .field { min-width: 0; flex: 1 1 100%; }
+    form.inline { gap: 8px; }
+    input, select { font-size: 1em; }
+    button { line-height: 46px; min-height: 46px; }
+    th, td { padding: 8px 8px; font-size: 0.92em; }
+    table { display: block; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; }
+    .userbox .user { display: none; }
+    .remote-banner { font-size: 0.85em; padding: 8px 12px; }
+  }
 </style>
 </head>
 <body>
@@ -345,6 +388,11 @@
   {% endif %}
 </header>
 <main>
+{% if remote_mode %}
+<div class="remote-banner" title="You are connected through the internet, not on the shop's local network.">
+  <span class="remote-dot"></span> Remote session — changes are saved to the shop computer live
+</div>
+{% endif %}
 {% if messages %}
 <ul class="messages">
   {% for message in messages %}
