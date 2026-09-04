@@ -39,6 +39,10 @@ ALLOWED_HOSTS = ['*']  # LAN + Cloudflare Tunnel access
 # header so HTTPS is detected correctly (CSRF, secure cookies, etc.).
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
+# Behind Cloudflare the request is HTTPS, so Django's CSRF middleware requires
+# the Origin/Referer to be an explicitly trusted origin.
+CSRF_TRUSTED_ORIGINS = ["https://pos.meatmagic.org", "https://*.meatmagic.org"]
+
 
 # Company branding used on receipts, invoices and printed documents.
 COMPANY_NAME = "Meat Magic Enterprises LTD"
