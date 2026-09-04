@@ -12,6 +12,7 @@ from django.utils import timezone
 from .forms import CreditPaymentForm, ExpenseForm, OtherServiceForm, SaleForm
 from .models import (
     CreditPayment,
+    Creditor,
     Expense,
     Invoice,
     Item,
@@ -627,6 +628,20 @@ def credit_ledger(request):
         messages.success(request, "Payment deleted.")
         return redirect(redirect_target)
 
+    if request.method == "POST" and "save_notes" in request.POST:
+        name = normalize_customer_name(request.POST.get("customer_name", ""))
+        notes = request.POST.get("notes", "").strip()
+        if not name:
+            messages.error(request, "No customer selected.")
+        else:
+            creditor = Creditor.objects.filter(name=name).first()
+            if creditor is None:
+                creditor = Creditor.objects.create(name=name)
+            creditor.notes = notes
+            creditor.save()
+            messages.success(request, f"Notes saved for {name}.")
+        return redirect(redirect_target)
+
     if request.method == "POST" and "settle" in request.POST:
         settle_name = normalize_customer_name(request.POST.get("customer_name", ""))
         raw_amount = request.POST.get("settle_amount", "").strip()
@@ -732,15 +747,27 @@ def credit_ledger(request):
         )
 
     customers = {}
+    creditor_map = {c.name: c for c in Creditor.objects.all()}
     for sale in credit_sales:
         name = normalize_customer_name(sale.customer_name)
         if name not in customers:
-            customers[name] = {"sales": [], "total_owed": Decimal("0"), "total_paid": Decimal("0"), "ctp": ""}
+            customers[name] = {"sales": [], "total_owed": Decimal("0"), "total_paid": Decimal("0"), "ctp": "", "creditor": creditor_map.get(name)}
         customers[name]["sales"].append(sale)
         customers[name]["total_owed"] += sale.gross
-        customers[name]["total_paid"] += sale.total_paid
         if not customers[name]["ctp"] and sale.customer_ctp:
             customers[name]["ctp"] = sale.customer_ctp
+
+    paid_by_sale = {
+        row["sale_id"]: row["total"]
+        for row in CreditPayment.objects.filter(sale__isnull=False).values("sale_id").annotate(total=Sum("amount"))
+    }
+
+    for name, data in customers.items():
+        for s in data["sales"]:
+            s_paid = paid_by_sale.get(s.pk, Decimal("0"))
+            data["total_paid"] += s_paid
+            s._paid = s_paid
+            s._balance = s.gross - s_paid
 
     unlinked_payments = CreditPayment.objects.filter(sale__isnull=True)
     if date_from:
@@ -757,14 +784,14 @@ def credit_ledger(request):
         if not name:
             continue
         if name not in customers:
-            customers[name] = {"sales": [], "total_owed": Decimal("0"), "total_paid": Decimal("0"), "ctp": ""}
+            customers[name] = {"sales": [], "total_owed": Decimal("0"), "total_paid": Decimal("0"), "ctp": "", "creditor": creditor_map.get(name)}
         customers[name]["total_paid"] += p.amount
         if not customers[name]["ctp"] and p.customer_ctp:
             customers[name]["ctp"] = p.customer_ctp
 
     for c in customers.values():
         c["balance"] = c["total_owed"] - c["total_paid"]
-        c["paid_count"] = sum(1 for s in c["sales"] if s.balance <= 0)
+        c["paid_count"] = sum(1 for s in c["sales"] if s._balance <= 0)
         if c["balance"] < 0:
             c["overpaid"] = -c["balance"]
     sorted_customers = sorted(customers.items(), key=lambda x: x[1]["balance"], reverse=True)

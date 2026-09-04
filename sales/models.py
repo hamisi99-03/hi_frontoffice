@@ -15,6 +15,19 @@ def normalize_customer_name(value):
     return " ".join((value or "").split()).title()
 
 
+class Creditor(models.Model):
+    """A customer who buys on credit, with optional extra contact notes."""
+
+    name = models.CharField(max_length=100, unique=True)
+    notes = models.TextField(blank=True, help_text="Extra info: phone, address, terms, etc.")
+
+    class Meta:
+        ordering = ["name"]
+
+    def __str__(self):
+        return self.name
+
+
 class Item(models.Model):
     """One row of the price list (was columns P:Q in the spreadsheet)."""
 
@@ -85,6 +98,10 @@ class Sale(models.Model):
         max_length=50, blank=True,
         help_text="Batch reference for this credit sale — same CTP for goods taken on the same day.",
     )
+    creditor = models.ForeignKey(
+        Creditor, on_delete=models.PROTECT, null=True, blank=True,
+        related_name="sales",
+    )
     remarks = models.CharField(max_length=255, blank=True)
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True
@@ -108,6 +125,7 @@ class Sale(models.Model):
     def save(self, *args, **kwargs):
         if self.customer_name:
             self.customer_name = normalize_customer_name(self.customer_name)
+            self.creditor = Creditor.objects.get_or_create(name=self.customer_name)[0]
         if self.customer_ctp:
             self.customer_ctp = self.customer_ctp.strip()
         if self._state.adding and not self.sequence:
@@ -229,6 +247,10 @@ class CreditPayment(models.Model):
         related_name="credit_payments",
         help_text="Link this payment to a specific credit sale.",
     )
+    creditor = models.ForeignKey(
+        Creditor, on_delete=models.PROTECT, null=True, blank=True,
+        related_name="payments",
+    )
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True
     )
@@ -251,6 +273,7 @@ class CreditPayment(models.Model):
             self.customer_ctp = self.sale.customer_ctp
         if self.customer_name:
             self.customer_name = normalize_customer_name(self.customer_name)
+            self.creditor = Creditor.objects.get_or_create(name=self.customer_name)[0]
         if self.customer_ctp:
             self.customer_ctp = self.customer_ctp.strip()
         super().save(*args, **kwargs)

@@ -54,6 +54,15 @@
     <a href="{% url 'invoice_customer' %}?name={{ customer_name|urlencode }}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}" style="float:right;font-size:0.85em;color:var(--green);margin-left:12px;">Invoice</a>
     <a href="{% url 'receipt_customer' %}?name={{ customer_name|urlencode }}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}" style="float:right;font-size:0.85em;color:var(--primary);">Print Receipt</a>
   </h3>
+  <details class="creditor-notes">
+    <summary>Contact / notes</summary>
+    <form method="post" class="notes-form" onsubmit="disableSubmit(this)">
+      {% csrf_token %}
+      <input type="hidden" name="customer_name" value="{{ customer_name }}">
+      <textarea name="notes" rows="2" placeholder="Phone, address, delivery days, terms...">{{ data.creditor.notes|default:"" }}</textarea>
+      <button type="submit" name="save_notes" value="1" class="secondary">Save notes</button>
+    </form>
+  </details>
   {% if data.paid_count %}
   <div class="paid-toggle-row">
     <button type="button" class="toggle-paid secondary" data-count="{{ data.paid_count }}" onclick="togglePaid(this)">Show paid orders ({{ data.paid_count }})</button>
@@ -63,22 +72,22 @@
     <thead><tr><th>Date</th><th>CTP</th><th>Item</th><th>Gross</th><th>Paid</th><th>Balance</th><th class="pay-col">Pay Now</th></tr></thead>
     <tbody>
       {% for sale in data.sales %}
-      <tr{% if sale.balance <= 0 %} class="paid-row"{% endif %}>
+      <tr{% if sale._balance <= 0 %} class="paid-row"{% endif %}>
         <td>{{ sale.date }}</td>
         <td>{% if sale.customer_ctp %}{{ sale.customer_ctp }}{% else %}—{% endif %}</td>
         <td>{{ sale.item.name }}</td>
         <td>KES {{ sale.gross|floatformat:2 }}</td>
-        <td>KES {{ sale.total_paid|floatformat:2 }}</td>
-        <td {% if sale.balance > 0 %}style="color:var(--red);font-weight:600;"{% endif %}>
-          KES {{ sale.balance|floatformat:2 }}
+        <td>KES {{ sale._paid|floatformat:2 }}</td>
+        <td {% if sale._balance > 0 %}style="color:var(--red);font-weight:600;"{% endif %}>
+          KES {{ sale._balance|floatformat:2 }}
         </td>
         <td class="pay-col">
-          {% if sale.balance > 0 %}
+          {% if sale._balance > 0 %}
           <form method="post" class="pay-inline" onsubmit="disableSubmit(this)">
             {% csrf_token %}
             <input type="hidden" name="sale" value="{{ sale.pk }}">
             <input type="hidden" name="customer_name" value="{{ customer_name }}">
-            <input type="number" name="amount" step="0.01" min="1" max="{{ sale.balance }}" value="{{ sale.balance }}" class="pay-amt" title="Amount (KES)">
+            <input type="number" name="amount" step="0.01" min="1" max="{{ sale._balance }}" value="{{ sale._balance }}" class="pay-amt" title="Amount (KES)">
             <select name="payment_mode" class="pay-mode">
               {% for code, label in payment_mode_choices %}
               <option value="{{ code }}">{{ label }}</option>
@@ -167,6 +176,12 @@
   .card.show-paid .paid-row { display: table-row; }
   .paid-toggle-row { text-align: right; margin: 4px 0 12px; }
   .toggle-paid { font-size: 0.85em; line-height: 1.4; }
+  .creditor-notes { margin: 8px 0 4px; }
+  .creditor-notes summary { cursor: pointer; font-size: 0.85em; color: var(--primary); font-weight: 600; }
+  .creditor-notes[open] summary { margin-bottom: 6px; }
+  .notes-form { display: flex; flex-direction: column; gap: 6px; }
+  .notes-form textarea { width: 100%; max-width: 520px; padding: 8px 10px; font-family: inherit; font-size: 0.92em; resize: vertical; }
+  .notes-form button { align-self: flex-start; }
 </style>
 
 <script>
