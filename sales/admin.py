@@ -31,6 +31,7 @@ class SaleAdmin(admin.ModelAdmin):
     list_per_page = 50
     list_select_related = ("item", "created_by")
     save_on_top = True
+    ordering = ("-date", "-sequence")
 
     def reference(self, obj):
         return obj.reference
@@ -84,6 +85,7 @@ class ExpenseAdmin(admin.ModelAdmin):
     list_per_page = 50
     list_select_related = ("created_by",)
     save_on_top = True
+    ordering = ("-date", "-id")
 
     def amount_display(self, obj):
         return f"KES {obj.amount:,.2f}"
@@ -112,6 +114,7 @@ class OtherServiceAdmin(admin.ModelAdmin):
     list_per_page = 50
     list_select_related = ("created_by",)
     save_on_top = True
+    ordering = ("-date", "-id")
 
     def amount_display(self, obj):
         return f"KES {obj.amount:,.2f}"
@@ -153,6 +156,7 @@ class CreditPaymentAdmin(admin.ModelAdmin):
     list_per_page = 50
     list_select_related = ("created_by",)
     save_on_top = True
+    ordering = ("-date", "-id")
 
     def amount_display(self, obj):
         return f"KES {obj.amount:,.2f}"
