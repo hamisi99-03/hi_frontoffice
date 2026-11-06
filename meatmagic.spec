@@ -119,6 +119,14 @@ a = Analysis(
     noarchive=False,
 )
 
+# Never ship the live database, its backups, or the secret key. PyInstaller's
+# Django hook adds db.* / *.db files from the project root automatically.
+def _is_private_data(entry):
+    src = os.path.basename(entry[1]).lower()
+    return src.startswith("db.") or src.endswith((".db", ".sqlite3", ".key"))
+
+a.datas = [d for d in a.datas if not _is_private_data(d)]
+
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 
 exe = EXE(
